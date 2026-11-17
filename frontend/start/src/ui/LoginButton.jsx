@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { ArrowLeftStartOnRectangleIcon, BookmarkIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftStartOnRectangleIcon, BookmarkIcon, Squares2X2Icon, UserCircleIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 
@@ -110,6 +110,15 @@ export default function LoginButton({ mobile = false }) {
             </div>
           </div>
 
+          <Link
+            href="/dashboard"
+            role="menuitem"
+            onClick={closeMenu}
+            className="mt-2 flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-text-secondary transition hover:bg-background-light hover:text-accent-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent-500"
+          >
+            <Squares2X2Icon className="h-5 w-5" aria-hidden="true" />
+            داشبورد
+          </Link>
           <Link
             href="/profile"
             role="menuitem"

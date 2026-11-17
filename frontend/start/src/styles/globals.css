@@ -3316,3 +3316,62 @@ body { min-height: 100vh; }
   .profile-stat-value { font-size: 1.18rem; }
   .profile-stat-caption { font-size: 0.62rem; }
 }
+
+/* Personal dashboard: compact role stats and activity cards, tuned to the reference. */
+.dashboard-page { position: relative; isolation: isolate; width: min(100%, 58rem); overflow: hidden; }
+.dashboard-page::before,
+.dashboard-page::after { position: absolute; z-index: -1; width: 24rem; aspect-ratio: 1; border: 1px solid color-mix(in srgb, var(--accent-500) 24%, transparent); border-radius: 50%; content: ""; pointer-events: none; }
+.dashboard-page::before { top: -13rem; left: -13rem; box-shadow: 0 0 0 1rem color-mix(in srgb, var(--accent-500) 10%, transparent), 0 0 0 2rem color-mix(in srgb, var(--primary-500) 9%, transparent); }
+.dashboard-page::after { top: 12rem; right: -16rem; box-shadow: 0 0 0 1rem color-mix(in srgb, var(--primary-500) 12%, transparent), 0 0 0 2rem color-mix(in srgb, var(--accent-500) 8%, transparent); }
+.dashboard-kicker { color: var(--accent-600); font-size: 0.78rem; font-weight: 800; }
+.dashboard-welcome { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 4.2rem; align-items: center; gap: 1rem; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent-600) 30%, var(--border-default)); border-radius: 1.3rem; background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--accent-500) 12%, transparent), transparent 45%), linear-gradient(125deg, color-mix(in srgb, var(--background-card) 95%, var(--primary-100)), color-mix(in srgb, var(--background-card) 94%, var(--accent-100))); padding: clamp(1rem, 3vw, 1.45rem); box-shadow: 0 0.8rem 2rem color-mix(in srgb, var(--primary-600) 8%, transparent); }
+.dashboard-welcome-copy { min-width: 0; }
+.dashboard-welcome-labels { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.dashboard-kicker { color: var(--text-secondary); font-size: 0.73rem; font-weight: 750; }
+.dashboard-role-badge { border: 1px solid color-mix(in srgb, var(--accent-600) 25%, var(--border-default)); border-radius: 999px; background: color-mix(in srgb, var(--accent-500) 10%, var(--background-card)); padding: 0.18rem 0.58rem; color: var(--accent-700); font-size: 0.68rem; font-weight: 800; }
+.dashboard-welcome h1 { margin: 0.45rem 0 0.2rem; color: var(--text-primary); font-size: clamp(1.25rem, 3.8vw, 1.7rem); font-weight: 900; line-height: 1.5; }
+.dashboard-welcome h1 span { color: var(--accent-600); }
+.dashboard-welcome-copy p { max-width: 42rem; margin: 0; color: var(--text-secondary); font-size: 0.84rem; line-height: 1.9; }
+.dashboard-avatar { display: grid; width: 4rem; height: 4rem; place-items: center; overflow: hidden; border: 2px solid color-mix(in srgb, var(--accent-600) 70%, white); border-radius: 1.1rem; background: color-mix(in srgb, var(--primary-600) 12%, var(--background-card)); color: var(--accent-600); font-size: 1.35rem; font-weight: 900; box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-600) 12%, transparent); }
+.dashboard-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.dashboard-welcome-footer { display: flex; grid-column: 1 / -1; align-items: center; justify-content: space-between; gap: 0.75rem; border-top: 1px solid color-mix(in srgb, var(--primary-500) 16%, var(--border-default)); padding-top: 0.8rem; }
+.dashboard-email { min-width: 0; overflow: hidden; color: var(--text-secondary); font-size: 0.75rem; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.dashboard-profile-link { display: inline-flex; min-height: 2.35rem; flex: 0 0 auto; align-items: center; justify-content: center; gap: 0.4rem; border: 1px solid color-mix(in srgb, var(--accent-600) 38%, var(--border-default)); border-radius: 999px; background: color-mix(in srgb, var(--accent-600) 11%, var(--background-card)); padding: 0.42rem 0.8rem; color: var(--accent-700); font-size: 0.74rem; font-weight: 800; text-decoration: none; white-space: nowrap; transition: background 150ms ease, transform 150ms ease; }
+.dashboard-profile-link svg { width: 1rem; height: 1rem; }
+.dashboard-profile-link:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--accent-500) 20%, var(--background-card)); }
+.dark-mode .dashboard-welcome { border-color: color-mix(in srgb, var(--accent-400) 28%, #414257); background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--accent-600) 23%, transparent), transparent 48%), linear-gradient(125deg, color-mix(in srgb, #171823 96%, var(--primary-900)), color-mix(in srgb, var(--accent-600) 18%, #171823)); box-shadow: 0 1rem 2.5rem rgb(8 9 20 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.04); }
+.dark-mode .dashboard-kicker,
+.dark-mode .dashboard-welcome h1,
+.dark-mode .dashboard-welcome-copy p { color: #e6e5ee; }
+.dark-mode .dashboard-welcome h1 span { color: color-mix(in srgb, var(--accent-300) 80%, white); }
+.dark-mode .dashboard-role-badge { border-color: color-mix(in srgb, var(--accent-400) 30%, transparent); background: color-mix(in srgb, var(--accent-500) 15%, transparent); color: var(--accent-300); }
+.dark-mode .dashboard-avatar { border-color: var(--accent-400); background: color-mix(in srgb, var(--accent-600) 24%, #171823); color: var(--accent-300); }
+.dark-mode .dashboard-welcome-footer { border-color: rgb(255 255 255 / 0.12); }
+.dark-mode .dashboard-email { color: #bcbacb; }
+.dark-mode .dashboard-profile-link { border-color: color-mix(in srgb, var(--accent-300) 45%, transparent); background: color-mix(in srgb, var(--accent-500) 19%, transparent); color: #e3deff; }
+.dark-mode .dashboard-profile-link:hover { background: color-mix(in srgb, var(--accent-500) 32%, transparent); }
+.dashboard-page .profile-stats-grid { position: relative; margin-top: 1.5rem; }
+.dashboard-page .profile-stat-card { min-height: 7.2rem; border-color: color-mix(in srgb, var(--primary-500) 23%, var(--border-default)); border-radius: 1.2rem; background: color-mix(in srgb, var(--background-card) 91%, var(--primary-500)); }
+.dark-mode .dashboard-page .profile-stat-card { border-color: #515c72; background: #292b33; box-shadow: 0 0.8rem 1.6rem rgb(0 0 0 / 0.13); }
+.dark-mode .dashboard-page .profile-stat-label,
+.dark-mode .dashboard-page .profile-stat-caption { color: #d2d3da; }
+.dark-mode .dashboard-page .profile-stat-value { color: #fff; font-size: 1.65rem; }
+.dashboard-history { position: relative; margin-top: 2.3rem; }
+.dashboard-history h2 { margin-bottom: 1.05rem; font-size: 1.35rem; }
+.dashboard-history .profile-history-list { gap: 0.8rem; }
+.dashboard-history .profile-history-row { min-height: 7.5rem; border-radius: 1.35rem; padding: 1.15rem; }
+.dashboard-history .profile-history-icon { width: 3.8rem; height: 3.8rem; border-radius: 1rem; }
+.dashboard-history .profile-history-copy > span { font-size: 0.92rem; font-weight: 700; }
+.dashboard-history .profile-history-copy strong { font-size: 1.35rem; }
+.dark-mode .dashboard-history .profile-history-row { border-color: #515c72; background: #2b2d35; }
+.dark-mode .dashboard-history .profile-history-icon { background: #293f56; color: #b7d8f6; }
+@media (max-width: 520px) {
+  .dashboard-welcome { grid-template-columns: minmax(0, 1fr) 3.5rem; gap: 0.7rem; }
+  .dashboard-avatar { width: 3.35rem; height: 3.35rem; border-radius: 0.95rem; }
+  .dashboard-welcome-footer { align-items: flex-start; flex-direction: column-reverse; }
+  .dashboard-profile-link { align-self: flex-start; }
+  .dashboard-page .profile-stats-grid { margin-top: 1.1rem; }
+  .dashboard-page .profile-stat-card { min-height: 6.2rem; }
+  .dashboard-history { margin-top: 1.8rem; }
+  .dashboard-history .profile-history-row { min-height: 6.2rem; }
+}

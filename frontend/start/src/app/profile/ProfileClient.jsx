@@ -1,22 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   BookOpenIcon,
   ChatBubbleLeftRightIcon,
   EnvelopeIcon,
-  HeartIcon,
   PencilSquareIcon,
-  UsersIcon,
 } from "@heroicons/react/24/outline";
 import { CheckIcon } from "@heroicons/react/24/solid";
 import { useAuth } from "@/context/AuthContext";
-import Authservice from "@/services/Authservice";
 import ProfileEditForm from "./_components/ProfileEditForm";
-import ProfileStats from "./_components/ProfileStats";
 import getTimeGreeting from "@/utils/getTimeGreeting";
 
 const roleNames = { READER: "خواننده", AUTHOR: "نویسنده", ADMIN: "مدیر" };
@@ -24,8 +19,6 @@ const roleNames = { READER: "خواننده", AUTHOR: "نویسنده", ADMIN: "
 export default function ProfilePage() {
   const router = useRouter();
   const { user, status } = useAuth();
-  const [dashboard, setDashboard] = useState(null);
-  const [dashboardError, setDashboardError] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [timeGreeting, setTimeGreeting] = useState("");
 
@@ -37,34 +30,11 @@ export default function ProfilePage() {
     if (status === "rejected") router.replace("/signin");
   }, [router, status]);
 
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-    Authservice.getDashboard()
-      .then((data) => { if (active) setDashboard(data); })
-      .catch(() => { if (active) setDashboardError(true); });
-    return () => { active = false; };
-  }, [user]);
-
   if (!user) {
     return <main className="profile-page" dir="rtl"><p className="profile-loading" role="status">در حال بارگذاری اطلاعات حساب...</p></main>;
   }
 
-  const role = dashboard?.role || user.role || "READER";
-  const stats = dashboard?.stats;
-  const history = role === "ADMIN"
-    ? [
-        { label: "کاربران", value: stats?.users, Icon: UsersIcon },
-        { label: "نظرها", value: stats?.comments, Icon: ChatBubbleLeftRightIcon },
-      ]
-    : role === "AUTHOR"
-      ? [
-          { label: "لایک نوشته‌ها", value: stats?.likes, Icon: HeartIcon },
-        ]
-      : [
-          { label: "نوشته‌های پسندیده", value: stats?.likes, Icon: HeartIcon },
-          { label: "نظرهای من", value: stats?.comments, Icon: ChatBubbleLeftRightIcon },
-        ];
+  const role = user.role || "READER";
 
   return (
     <main className="profile-page" dir="rtl">
@@ -110,25 +80,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      <ProfileStats role={role} stats={stats} createdAt={user.createdAt} isLoading={!dashboard && !dashboardError} hasError={dashboardError} />
-
-      <section className="profile-history" aria-labelledby="profile-history-title">
-        <h2 id="profile-history-title">سوابق من</h2>
-        <div className="profile-history-list">
-          {history.map(({ label, value, Icon, href }) => {
-            const content = <>
-              <span className="profile-history-icon"><Icon aria-hidden="true" /></span>
-              <span className="profile-history-copy"><span>{label}</span><strong>{value ?? (dashboardError ? "—" : "…")}</strong></span>
-              {href && <span className="profile-history-arrow" aria-hidden="true">←</span>}
-            </>;
-            return href
-              ? <Link className="profile-history-row profile-history-link" href={href} key={label}>{content}</Link>
-              : <div className="profile-history-row" key={label}>{content}</div>;
-          })}
-        </div>
-        {dashboardError && <p className="profile-data-note" role="status">آمار حساب فعلا در دسترس نیست.</p>}
-      </section>
-      {role === "ADMIN" && <Link className="admin-users-link" href="/admin/users">مدیریت نقش کاربران <span aria-hidden="true">←</span></Link>}
       {isEditing && <ProfileEditForm user={user} onClose={() => setIsEditing(false)} />}
     </main>
   );
