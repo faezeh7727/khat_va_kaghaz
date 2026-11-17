@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# فرانت‌اند خط و کاغذ
 
-## Getting Started
+این پوشه برنامه‌ی وب پروژه است که با Next.js و React ساخته شده. راهنمای کلی پروژه و بک‌اند در [README ریشه](../../README.md) قرار دارد.
 
-First, run the development server:
+## پیش‌نیازها
+
+Node.js و npm را نصب کنید و مطمئن شوید API بک‌اند روی پورت `5000` در حال اجراست.
+
+## نصب و اجرا
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+برنامه به‌طور پیش‌فرض روی `http://localhost:3000` اجرا می‌شود.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+برای اتصال فرانت‌اند به API، فایل `.env.local` را در همین پوشه بسازید و آدرس API را در آن قرار دهید:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+NEXT_PUBLIC_BASE_URL=http://localhost:5000/api
+```
 
-## Learn More
+## فرمان‌های موجود
 
-To learn more about Next.js, take a look at the following resources:
+- `npm run dev` — اجرای محیط توسعه
+- `npm run build` — ساخت نسخه‌ی production
+- `npm run start` — اجرای نسخه‌ی ساخته‌شده
+- `npm run lint` — بررسی کد با ESLint
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+برای اجرای کامل وب‌سایت، بک‌اند و MongoDB نیز باید پیکربندی و اجرا شده باشند؛ مراحل آن در README ریشه توضیح داده شده است.
