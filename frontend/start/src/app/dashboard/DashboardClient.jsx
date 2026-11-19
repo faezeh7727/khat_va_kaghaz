@@ -6,14 +6,13 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
-  ChatBubbleLeftRightIcon,
-  HeartIcon,
-  UsersIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/context/AuthContext";
 import Authservice from "@/services/Authservice";
 import ProfileStats from "../profile/_components/ProfileStats";
+import DashboardHistory from "./_components/DashboardHistory";
 import WeeklyReadingStreak from "./_components/WeeklyReadingStreak";
+import RecommendedArticle from "./_components/RecommendedArticle";
 
 const roleNames = { READER: "خواننده", AUTHOR: "نویسنده", ADMIN: "مدیر" };
 const roleDescriptions = {
@@ -21,8 +20,6 @@ const roleDescriptions = {
   AUTHOR: "وضعیت نوشته‌ها و بازخوردی که از خوانندگان گرفته‌اند اینجاست.",
   ADMIN: "آمار کلی سایت و دسترسی‌های مدیریتی از این بخش در دسترس است.",
 };
-const formatNumber = new Intl.NumberFormat("fa-IR");
-
 export default function DashboardClient() {
   const router = useRouter();
   const { user, status } = useAuth();
@@ -49,21 +46,6 @@ export default function DashboardClient() {
   const role = dashboard?.role || user.role || "READER";
   const stats = dashboard?.stats;
   const displayName = user.name || user.username || "کاربر";
-  const history = role === "ADMIN"
-    ? [
-        { label: "کاربران سایت", value: stats?.users, Icon: UsersIcon, href: "/admin/users" },
-        { label: "نظرهای ثبت‌شده", value: stats?.comments, Icon: ChatBubbleLeftRightIcon },
-      ]
-    : role === "AUTHOR"
-      ? [
-          { label: "لایک نوشته‌ها", value: stats?.likes, Icon: HeartIcon },
-          { label: "نوشته‌های من", value: stats?.posts, Icon: ChatBubbleLeftRightIcon },
-        ]
-      : [
-          { label: "نوشته‌های پسندیده", value: stats?.likes, Icon: HeartIcon },
-          { label: "نظرهای من", value: stats?.comments, Icon: ChatBubbleLeftRightIcon },
-        ];
-
   return (
     <main className="profile-page dashboard-page" dir="rtl">
       <section className="dashboard-welcome" aria-labelledby="dashboard-title">
@@ -110,22 +92,21 @@ export default function DashboardClient() {
         isLoading={!dashboard && !hasError}
       />
 
-      <section className="profile-history dashboard-history" aria-labelledby="dashboard-history-title">
-        <h2 id="dashboard-history-title">سوابق من</h2>
-        <div className="profile-history-list">
-          {history.map(({ label, value, Icon, href }) => {
-            const content = <>
-              <span className="profile-history-icon"><Icon aria-hidden="true" /></span>
-              <span className="profile-history-copy"><span>{label}</span><strong>{value == null ? (hasError ? "—" : "…") : formatNumber.format(value)}</strong></span>
-              {href && <span className="profile-history-arrow" aria-hidden="true">←</span>}
-            </>;
-            return href
-              ? <Link className="profile-history-row profile-history-link" href={href} key={label}>{content}</Link>
-              : <div className="profile-history-row" key={label}>{content}</div>;
-          })}
-        </div>
-        {hasError && <p className="profile-data-note" role="status">آمار داشبورد فعلاً در دسترس نیست.</p>}
-      </section>
+      <DashboardHistory
+        role={role}
+        stats={stats}
+        createdAt={user.createdAt}
+        recentReads={dashboard?.recentReads || []}
+        isLoading={!dashboard && !hasError}
+        hasError={hasError}
+      />
+
+      <RecommendedArticle
+        recommendation={dashboard?.recommendedPost || null}
+        interests={user.interests || []}
+        isLoading={!dashboard && !hasError}
+        hasError={hasError}
+      />
     </main>
   );
 }

@@ -16,9 +16,83 @@ const fs = require("fs");
 const { UserModel } = require("../../models/user");
 const bcrypt = require("bcryptjs");
 const { PostModel } = require("../../models/post");
+const { CategoryModel } = require("../../models/category");
 const { CommentModel } = require("../../models/comment");
 const { ReadingActivityModel } = require("../../models/readingActivity");
 const { WritingActivityModel } = require("../../models/writingActivity");
+const { ReadingHistoryModel } = require("../../models/readingHistory");
+
+function normalizeRecommendationText(value) {
+  return String(value || "")
+    .toLocaleLowerCase("fa")
+    .replace(/[يى]/g, "ی")
+    .replace(/ك/g, "ک")
+    .replace(/[\u200c\u200f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+async function findRecommendedPost(user) {
+  const interests = [...new Set((user.interests || []).map(normalizeRecommendationText).filter(Boolean))];
+  if (!interests.length) return null;
+
+  const categories = await CategoryModel.find({}, { title: 1 }).lean();
+  const matchingCategoryIds = categories
+    .filter(({ title }) => interests.some((interest) => normalizeRecommendationText(title).includes(interest)))
+    .map(({ _id }) => _id);
+  const clauses = interests.flatMap((interest) => {
+    const regex = new RegExp(interest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    return [{ title: regex }, { slug: regex }, { briefText: regex }, { tags: regex }];
+  });
+  if (matchingCategoryIds.length) clauses.push({ category: { $in: matchingCategoryIds } });
+
+  const posts = await PostModel.find({ status: { $ne: "draft" }, $or: clauses }, {
+    title: 1,
+    slug: 1,
+    briefText: 1,
+    category: 1,
+    tags: 1,
+    readingTime: 1,
+    author: 1,
+    createdAt: 1,
+  })
+    .populate({ path: "category", select: "title slug" })
+    .populate({ path: "author", select: "name username" })
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const rankedPosts = posts.map((post) => {
+    const fields = [
+      { value: post.title, weight: 4 },
+      { value: post.slug, weight: 3 },
+      { value: post.briefText, weight: 2 },
+      { value: post.category?.title, weight: 5 },
+      ...(post.tags || []).map((value) => ({ value, weight: 5 })),
+    ].map(({ value, weight }) => ({ value: normalizeRecommendationText(value), weight }));
+    const matchedInterests = interests.filter((interest) => fields.some((field) => field.value.includes(interest)));
+    const score = matchedInterests.reduce(
+      (total, interest) => total + fields.reduce((fieldTotal, field) => fieldTotal + (field.value.includes(interest) ? field.weight : 0), 0),
+      0
+    );
+    return { post, score, matchedInterests };
+  }).filter(({ score }) => score > 0);
+
+  rankedPosts.sort((left, right) => right.score - left.score || new Date(right.post.createdAt) - new Date(left.post.createdAt));
+  const recommended = rankedPosts[0]?.post;
+  if (!recommended) return null;
+  return {
+    _id: recommended._id,
+    title: recommended.title,
+    slug: recommended.slug,
+    briefText: recommended.briefText,
+    category: recommended.category,
+    tags: recommended.tags || [],
+    readingTime: recommended.readingTime,
+    author: recommended.author,
+    matchedInterests: rankedPosts[0].matchedInterests,
+  };
+}
+
 class UserAuthController extends Controller {
   constructor() {
     super();
@@ -180,13 +254,43 @@ class UserAuthController extends Controller {
       },
     });
   }
+  async getMyComments(req, res) {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 3));
+    const filter = { user: req.user._id };
+    const [comments, total] = await Promise.all([
+      CommentModel.find(filter, { post: 1, content: 1, createdAt: 1 })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate({ path: "post", select: "title slug" })
+        .lean(),
+      CommentModel.countDocuments(filter),
+    ]);
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        comments: comments
+          .filter(({ post }) => post)
+          .map(({ _id, post, content, createdAt }) => ({
+            _id,
+            title: post.title,
+            slug: post.slug,
+            text: content?.text || "",
+            createdAt,
+          })),
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      },
+    });
+  }
   async getDashboard(req, res) {
     const user = req.user;
     const role = user.role || "READER";
     const weekAgo = new Date();
     weekAgo.setUTCDate(weekAgo.getUTCDate() - 8);
     const fromDay = weekAgo.toISOString().slice(0, 10);
-    const [readingActivity, writingActivity] = await Promise.all([
+    const [readingActivity, writingActivity, recentReads, recommendedPost] = await Promise.all([
       ReadingActivityModel.find(
         { user: user._id, day: { $gte: fromDay } },
         { _id: 0, day: 1, seconds: 1 }
@@ -195,7 +299,36 @@ class UserAuthController extends Controller {
         { user: user._id, day: { $gte: fromDay } },
         { _id: 0, day: 1, seconds: 1 }
       ).lean(),
+      ReadingHistoryModel.find({ user: user._id })
+        .sort({ lastReadAt: -1 })
+        .limit(3)
+        .populate({ path: "post", select: "title slug" })
+        .lean(),
+      findRecommendedPost(user),
     ]);
+    let recentReadItems = recentReads
+      .filter(({ post }) => post)
+      .map(({ post, lastReadAt }) => ({
+        _id: post._id,
+        title: post.title,
+        slug: post.slug,
+        lastReadAt,
+      }));
+
+    // Older readPosts entries predate timestamped history. Keep them visible without inventing dates.
+    if (!recentReadItems.length && user.readPosts?.length) {
+      const legacyIds = user.readPosts.slice(-3).reverse();
+      const legacyPosts = await PostModel.find(
+        { _id: { $in: legacyIds } },
+        { title: 1, slug: 1 }
+      ).lean();
+      const legacyById = new Map(legacyPosts.map((post) => [String(post._id), post]));
+      recentReadItems = legacyIds
+        .map((id) => legacyById.get(String(id)))
+        .filter(Boolean)
+        .map((post) => ({ ...post, lastReadAt: null }));
+    }
+
     let stats = {
       bookmarks: user.bookmarkedPosts?.length || 0,
       readPosts: user.readPosts?.length || 0,
@@ -229,7 +362,14 @@ class UserAuthController extends Controller {
 
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
-      data: { role, stats, readingActivity, writingActivity },
+      data: {
+        role,
+        stats,
+        readingActivity,
+        writingActivity,
+        recentReads: recentReadItems,
+        recommendedPost,
+      },
     });
   }
   async recordWritingTime(req, res) {

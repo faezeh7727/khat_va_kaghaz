@@ -33,7 +33,9 @@ export default function Header() {
               <ThemeToggle />
             </div>
             <div className="flex items-center gap-3 lg:hidden">
-              <ThemeToggle />
+              <span className={`header-theme-control${user ? " header-theme-control--account" : ""}`}>
+                <ThemeToggle />
+              </span>
               {user && <LoginButton mobile />}
               <ButtonIcon
                 ref={menuButtonRef}

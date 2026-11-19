@@ -12,6 +12,7 @@ const Controller = require("./controller");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { UserModel } = require("../../models/user");
 const { ReadingActivityModel } = require("../../models/readingActivity");
+const { ReadingHistoryModel } = require("../../models/readingHistory");
 const { transformPost } = require("../../utils/transformPost");
 const { default: mongoose } = require("mongoose");
 
@@ -70,8 +71,8 @@ class PostController extends Controller {
         {
           path: "related",
           model: "Post",
-          select: {
           match: { status: { $ne: "draft" } },
+          select: {
             title: 1,
             slug: 1,
             bfireText: 1,
@@ -147,8 +148,8 @@ class PostController extends Controller {
         {
           path: "related",
           model: "Post",
-          select: { title: 1, slug: 1, briefText: 1, coverImage: 1, author: 1 },
           match: { status: { $ne: "draft" } },
+          select: { title: 1, slug: 1, briefText: 1, coverImage: 1, author: 1 },
           populate: [
             {
               path: "author",
@@ -188,8 +189,8 @@ class PostController extends Controller {
       {
         path: "related",
         model: "Post",
-        select: {
         match: { status: { $ne: "draft" } },
+        select: {
           title: 1,
           slug: 1,
           bfireText: 1,
@@ -212,12 +213,12 @@ class PostController extends Controller {
     ]);
 
     if (!post) throw createHttpError.NotFound("پستی با این مشخصات یافت نشد");
-    const { id: postId } = post;
     const postAuthorId = post.author?._id || post.author;
     const canViewDraft = user && (user.role === "ADMIN" || String(postAuthorId) === String(user._id));
     if (post.status === "draft" && !canViewDraft) {
       throw createHttpError.NotFound("Post not found.");
     }
+    const { id: postId } = post;
     const acceptedCommnets = await CommentController.findAcceptedComments(
       postId
     );
@@ -275,8 +276,8 @@ class PostController extends Controller {
       readingTime,
       related = [],
     } = rest;
-
     const slug = rest.slug || (status === "draft" ? `draft-${new mongoose.Types.ObjectId()}` : "");
+
     const author = req.user._id;
     // const { fileUploadPath, filename } = req.body;
 
@@ -284,8 +285,8 @@ class PostController extends Controller {
       title,
       briefText,
       slug,
-      type,
       status,
+      type,
       category,
       tags,
       text,
@@ -334,7 +335,6 @@ class PostController extends Controller {
       coverImage = { light: uploadedCoverPath, dark: uploadedCoverPath };
     }
 
-    const updatePostResult = await PostModel.updateOne(
     const status = data.status || post.status || "published";
     if (!["draft", "published"].includes(status)) {
       throw createHttpError.BadRequest("وضعیت نوشته معتبر نیست.");
@@ -357,6 +357,7 @@ class PostController extends Controller {
       status,
     });
 
+    const updatePostResult = await PostModel.updateOne(
       { _id: id },
       {
         $set: { ...data, coverImage },
@@ -410,10 +411,17 @@ class PostController extends Controller {
   }
   async recordPostRead(req, res) {
     const post = await this.findPostById(req.params.id);
-    await UserModel.updateOne(
-      { _id: req.user._id },
-      { $addToSet: { readPosts: post._id } }
-    );
+    await Promise.all([
+      UserModel.updateOne(
+        { _id: req.user._id },
+        { $addToSet: { readPosts: post._id } }
+      ),
+      ReadingHistoryModel.findOneAndUpdate(
+        { user: req.user._id, post: post._id },
+        { $set: { lastReadAt: new Date() }, $inc: { readCount: 1 } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      ),
+    ]);
 
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,

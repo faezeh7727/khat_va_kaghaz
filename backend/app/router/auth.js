@@ -34,6 +34,7 @@ router.get(
   expressAsyncHandler(UserAuthController.getUserProfile)
 );
 router.get("/dashboard", verifyAccessToken, expressAsyncHandler(UserAuthController.getDashboard));
+router.get("/comments", verifyAccessToken, expressAsyncHandler(UserAuthController.getMyComments));
 router.post(
   "/writing-time",
   verifyAccessToken,

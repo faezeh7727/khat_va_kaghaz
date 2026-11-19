@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { ArrowLeftStartOnRectangleIcon, BookmarkIcon, Squares2X2Icon, UserCircleIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
+import ThemeToggle from "@/ui/ThemeToggle";
 
 export default function LoginButton({ mobile = false }) {
   const { user, logout } = useAuth();
@@ -100,7 +101,7 @@ export default function LoginButton({ mobile = false }) {
           style={{ position: "fixed", top: panelPosition.top, right: panelPosition.right, width: panelPosition.width, zIndex: 1000 }}
           className="max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-border-light bg-background-card p-2 text-text-primary shadow-xl"
         >
-          <div className="flex items-center gap-3 border-b border-border-light px-3 py-3">
+          <div className="account-panel-header flex items-center gap-3 border-b border-border-light px-3 py-3">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-accent-500/12 text-xl font-bold text-accent-600" aria-hidden="true">
               {displayName.trim().charAt(0)}
             </span>
@@ -108,6 +109,9 @@ export default function LoginButton({ mobile = false }) {
               <p className="truncate text-sm font-bold">{displayName}</p>
               {email && <p className="mt-1 truncate text-xs text-text-secondary">{email}</p>}
             </div>
+            <span className="account-panel-theme-toggle">
+              <ThemeToggle />
+            </span>
           </div>
 
           <Link
