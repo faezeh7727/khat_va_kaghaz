@@ -9,7 +9,7 @@ import AuthorOnly from "../_components/AuthorOnly";
 import PostEditorService from "@/services/PostEditorService";
 import useActiveTimeTracking from "@/hooks/useActiveTimeTracking";
 
-const emptyPost = { title: "", slug: "", category: "", briefText: "", text: "", type: "free", tags: [] };
+const emptyPost = { title: "", slug: "", category: "", briefText: "", text: "", type: "free", status: "published", tags: [] };
 
 function makeSlug(value) {
   return value.trim().toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
@@ -44,16 +44,17 @@ function EditorContent({ postId }) {
         setPostLoaded(true);
         setForm({
           title: post.title || "",
-          slug: post.slug || "",
+          slug: post.status === "draft" && /^draft-[a-f0-9]{24}$/i.test(post.slug || "") ? "" : post.slug || "",
           category: post.category?._id || post.category || "",
           briefText: post.briefText || "",
           text: post.text || "",
           type: post.type || "free",
+          status: post.status || "published",
           tags: post.tags || [],
         });
         setTags((post.tags || []).join(", "));
         setExistingImage(post.coverImageUrl?.light || post.coverImage?.light || "");
-        setSlugEdited(true);
+        setSlugEdited(!(post.status === "draft" && /^draft-[a-f0-9]{24}$/i.test(post.slug || "")));
       }
     }).catch((loadError) => { if (active) setError(loadError.message); })
       .finally(() => { if (active) setLoading(false); });
@@ -87,11 +88,14 @@ function EditorContent({ postId }) {
   async function submit(event) {
     event.preventDefault();
     setError("");
-    if (!form.title.trim() || form.title.trim().length < 5) return setError("عنوان باید دست‌کم ۵ نویسه باشد.");
-    if (!form.slug.trim()) return setError("نشانی نوشته را وارد کن.");
-    if (!form.category) return setError("یک دسته‌بندی انتخاب کن.");
-    if (!form.briefText.trim() || !form.text.trim()) return setError("خلاصه و متن نوشته را کامل کن.");
-    if (!isEdit && !image) return setError("برای نوشته تصویر کاور انتخاب کن.");
+    const nextStatus = event.nativeEvent.submitter?.value || form.status || "published";
+    if (nextStatus === "published") {
+      if (!form.title.trim() || form.title.trim().length < 5) return setError("عنوان نوشته باید دست‌کم ۵ نویسه باشد.");
+      if (!form.slug.trim()) return setError("نشانی نوشته را وارد کن.");
+      if (!form.category) return setError("یک دسته‌بندی انتخاب کن.");
+      if (!form.briefText.trim() || !form.text.trim()) return setError("خلاصه و متن نوشته را کامل کن.");
+      if (!image && !existingImage) return setError("برای انتشار نوشته تصویر کاور انتخاب کن.");
+    }
 
     const data = new FormData();
     data.set("title", form.title.trim());
@@ -102,6 +106,7 @@ function EditorContent({ postId }) {
     data.set("type", form.type);
     data.set("readingTime", String(readingMinutes));
     data.set("tags", JSON.stringify(tags.split(",").map((tag) => tag.trim()).filter(Boolean)));
+    data.set("status", nextStatus);
     if (image) data.set("coverImage", image);
 
     setSaving(true);
@@ -128,12 +133,12 @@ function EditorContent({ postId }) {
 
       {error && <p className="author-posts-message is-error" role="alert">{error}</p>}
       <form className="author-post-form" onSubmit={submit}>
-        <label>عنوان نوشته<input name="title" value={form.title} onChange={updateField} maxLength={100} required /></label>
-        <label>نشانی نوشته<input name="slug" value={form.slug} onChange={(event) => { setSlugEdited(true); updateField(event); }} required dir="auto" /></label>
-        <label>دسته‌بندی<select name="category" value={form.category} onChange={updateField} required><option value="">انتخاب دسته‌بندی</option>{categories.map((category) => <option key={category._id} value={category._id}>{category.title}</option>)}</select></label>
+        <label>عنوان نوشته<input name="title" value={form.title} onChange={updateField} maxLength={100} /></label>
+        <label>نشانی نوشته<input name="slug" value={form.slug} onChange={(event) => { setSlugEdited(true); updateField(event); }} dir="auto" /></label>
+        <label>دسته‌بندی<select name="category" value={form.category} onChange={updateField}><option value="">انتخاب دسته‌بندی</option>{categories.map((category) => <option key={category._id} value={category._id}>{category.title}</option>)}</select></label>
         <label>نوع نوشته<select name="type" value={form.type} onChange={updateField}><option value="free">رایگان</option><option value="premium">ویژه</option></select></label>
-        <label className="author-form-wide">خلاصه<textarea name="briefText" value={form.briefText} onChange={updateField} rows={3} required /></label>
-        <label className="author-form-wide">متن نوشته<textarea name="text" value={form.text} onChange={updateField} rows={14} required /></label>
+        <label className="author-form-wide">خلاصه<textarea name="briefText" value={form.briefText} onChange={updateField} rows={3} /></label>
+        <label className="author-form-wide">متن نوشته<textarea name="text" value={form.text} onChange={updateField} rows={14} /></label>
         <label className="author-form-wide">برچسب‌ها <span className="author-field-hint">با ویرگول جدا کن</span><input value={tags} onChange={(event) => setTags(event.target.value)} placeholder="ادبیات، داستان، نقد" /></label>
         <label className="author-form-wide">تصویر کاور <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => {
           if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
@@ -142,10 +147,11 @@ function EditorContent({ postId }) {
           previewUrlRef.current = selectedPreview || null;
           setPreview(selectedPreview);
           setImage(selected);
-        }} required={!isEdit} />{(preview || existingImage) && <Image className="author-cover-preview" src={preview || existingImage} alt="پیش‌نمایش کاور نوشته" width={768} height={432} unoptimized />}</label>
+        }} />{(preview || existingImage) && <Image className="author-cover-preview" src={preview || existingImage} alt="پیش‌نمایش کاور نوشته" width={768} height={432} unoptimized />}</label>
         <p className="author-reading-estimate">زمان مطالعه‌ی برآوردی: {readingMinutes} دقیقه</p>
         <div className="author-form-actions">
-          <button className="author-action-button" type="submit" disabled={saving}>{saving ? "در حال ذخیره…" : <><CheckIcon aria-hidden="true" /> {isEdit ? "ذخیره‌ی تغییرات" : "انتشار نوشته"}</>}</button>
+          <button className="author-save-draft-button" type="submit" name="status" value="draft" disabled={saving}>ذخیره پیش‌نویس</button>
+          <button className="author-action-button" type="submit" name="status" value="published" disabled={saving}>{saving ? "در حال ذخیره…" : <><CheckIcon aria-hidden="true" /> {isEdit && form.status === "published" ? "ذخیره و انتشار" : "انتشار نوشته"}</>}</button>
           <Link className="author-back-link" href="/dashboard/posts">انصراف</Link>
         </div>
       </form>

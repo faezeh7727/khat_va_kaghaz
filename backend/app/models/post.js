@@ -3,12 +3,13 @@ const ObjectId = mongoose.Schema.Types.ObjectId;
 
 const PostSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
-    slug: { type: String, required: true, unique: true }, // page link in front-end : jsx-in-react.js
+    status: { type: String, enum: ["draft", "published"], default: "published", index: true },
+    title: { type: String, required() { return this.status === "published"; } },
+    slug: { type: String, required() { return this.status === "published"; }, unique: true }, // page link in front-end : jsx-in-react.js
     category: {
       type: ObjectId,
       ref: "Category",
-      required: true,
+      required() { return this.status === "published"; },
     },
     type: {
       type: String,
@@ -16,15 +17,15 @@ const PostSchema = new mongoose.Schema(
       required: true,
       enum: ["free", "premium"],
     },
-    briefText: { type: String, required: true },
-    text: { type: String, required: true },
+    briefText: { type: String, required() { return this.status === "published"; } },
+    text: { type: String, required() { return this.status === "published"; } },
     coverImage: {
-      light: { type: String, required: true },
-      dark: { type: String, required: true },
+      light: { type: String, required() { return this.status === "published"; } },
+      dark: { type: String, required() { return this.status === "published"; } },
     },
     likes: [{ type: ObjectId, ref: "User" }],
     bookmarks: [{ type: ObjectId, ref: "User" }],
-    readingTime: { type: Number, required: true },
+    readingTime: { type: Number, required() { return this.status === "published"; } },
     tags: [{ type: String }],
     author: { type: ObjectId, ref: "User" },
     related: [{ type: ObjectId, ref: "Post" }],

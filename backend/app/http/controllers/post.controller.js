@@ -20,7 +20,7 @@ class PostController extends Controller {
     super();
   }
   async getAllPosts(req, res) {
-    let dbQuery = {};
+    let dbQuery = { status: { $ne: "draft" } };
     const user = req.user;
     let { search, categorySlug, sort, page, limit } = req.query;
     page = Number(page) || 1;
@@ -71,6 +71,7 @@ class PostController extends Controller {
           path: "related",
           model: "Post",
           select: {
+          match: { status: { $ne: "draft" } },
             title: 1,
             slug: 1,
             bfireText: 1,
@@ -117,7 +118,7 @@ class PostController extends Controller {
   async getMyPosts(req, res) {
     const posts = await PostModel.find(
       { author: req.user._id },
-      { title: 1, slug: 1, briefText: 1, category: 1, updatedAt: 1 }
+      { title: 1, slug: 1, briefText: 1, category: 1, status: 1, updatedAt: 1 }
     )
       .populate("category", "title slug")
       .sort({ updatedAt: -1 });
@@ -147,6 +148,7 @@ class PostController extends Controller {
           path: "related",
           model: "Post",
           select: { title: 1, slug: 1, briefText: 1, coverImage: 1, author: 1 },
+          match: { status: { $ne: "draft" } },
           populate: [
             {
               path: "author",
@@ -163,7 +165,7 @@ class PostController extends Controller {
       ],
     });
 
-    const posts = copyObject((user?.bookmarkedPosts || []).filter(Boolean).reverse());
+    const posts = copyObject((user?.bookmarkedPosts || []).filter((post) => post && post.status !== "draft").reverse());
     for (const post of posts) {
       await transformPost(post, req.user);
     }
@@ -187,6 +189,7 @@ class PostController extends Controller {
         path: "related",
         model: "Post",
         select: {
+        match: { status: { $ne: "draft" } },
           title: 1,
           slug: 1,
           bfireText: 1,
@@ -210,6 +213,11 @@ class PostController extends Controller {
 
     if (!post) throw createHttpError.NotFound("پستی با این مشخصات یافت نشد");
     const { id: postId } = post;
+    const postAuthorId = post.author?._id || post.author;
+    const canViewDraft = user && (user.role === "ADMIN" || String(postAuthorId) === String(user._id));
+    if (post.status === "draft" && !canViewDraft) {
+      throw createHttpError.NotFound("Post not found.");
+    }
     const acceptedCommnets = await CommentController.findAcceptedComments(
       postId
     );
@@ -252,11 +260,14 @@ class PostController extends Controller {
     };
     rest.tags = parseArray(rest.tags);
     rest.related = parseArray(rest.related);
-    await validateAddNewPost({ ...rest, coverImage });
+    const status = rest.status || "published";
+    if (!["draft", "published"].includes(status)) {
+      throw createHttpError.BadRequest("وضعیت نوشته معتبر نیست.");
+    }
+    await validateAddNewPost({ ...rest, status, coverImage });
     const {
       title,
       briefText,
-      slug,
       type = "free",
       category,
       tags = [],
@@ -265,6 +276,7 @@ class PostController extends Controller {
       related = [],
     } = rest;
 
+    const slug = rest.slug || (status === "draft" ? `draft-${new mongoose.Types.ObjectId()}` : "");
     const author = req.user._id;
     // const { fileUploadPath, filename } = req.body;
 
@@ -273,6 +285,7 @@ class PostController extends Controller {
       briefText,
       slug,
       type,
+      status,
       category,
       tags,
       text,
@@ -322,13 +335,35 @@ class PostController extends Controller {
     }
 
     const updatePostResult = await PostModel.updateOne(
+    const status = data.status || post.status || "published";
+    if (!["draft", "published"].includes(status)) {
+      throw createHttpError.BadRequest("وضعیت نوشته معتبر نیست.");
+    }
+    data.status = status;
+    if (status === "draft" && !data.slug) {
+      data.slug = post.slug || `draft-${new mongoose.Types.ObjectId()}`;
+    }
+    await validateAddNewPost({
+      title: data.title ?? post.title,
+      slug: data.slug ?? post.slug,
+      category: String(data.category ?? post.category?._id ?? post.category ?? ""),
+      briefText: data.briefText ?? post.briefText,
+      text: data.text ?? post.text,
+      coverImage,
+      readingTime: data.readingTime ?? post.readingTime,
+      type: data.type ?? post.type ?? "free",
+      tags: Array.isArray(data.tags ?? post.tags) ? (data.tags ?? post.tags).map(String) : data.tags,
+      related: Array.isArray(data.related ?? post.related) ? (data.related ?? post.related).map(String) : data.related,
+      status,
+    });
+
       { _id: id },
       {
         $set: { ...data, coverImage },
       }
     );
 
-    if (!updatePostResult.modifiedCount)
+    if (!updatePostResult.matchedCount)
       throw new createHttpError.InternalServerError(
         "به روزرسانی پست انجام نشد"
       );

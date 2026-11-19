@@ -39,13 +39,13 @@ function AuthorPostsContent() {
           {posts.map((post) => (
             <article className="author-post-row" key={post._id}>
               <div className="author-post-copy">
-                <div className="author-post-meta"><span>{post.category?.title || "بدون دسته‌بندی"}</span><time dateTime={post.updatedAt}>{post.updatedAt ? dateFormat.format(new Date(post.updatedAt)) : ""}</time></div>
+                <div className="author-post-meta"><span>{post.category?.title || "بدون دسته‌بندی"}</span><span className={`author-post-status${post.status === "draft" ? " is-draft" : ""}`}>{post.status === "draft" ? "پیش‌نویس" : "منتشرشده"}</span><time dateTime={post.updatedAt}>{post.updatedAt ? dateFormat.format(new Date(post.updatedAt)) : ""}</time></div>
                 <h2>{post.title}</h2>
                 <p>{post.briefText}</p>
               </div>
               <div className="author-post-actions">
                 <Link className="author-edit-link" href={`/dashboard/posts/${post._id}/edit`}><PencilSquareIcon aria-hidden="true" /> ویرایش</Link>
-                {post.slug && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`} target="_blank" rel="noreferrer">مشاهده <ArrowLeftIcon aria-hidden="true" /></Link>}
+                {post.slug && post.status !== "draft" && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`} target="_blank" rel="noreferrer">مشاهده <ArrowLeftIcon aria-hidden="true" /></Link>}
               </div>
             </article>
           ))}
