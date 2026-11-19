@@ -27,6 +27,18 @@ router.get(
   decideAuthMiddleware,
   expressAsyncHandler(PostController.getAllPosts)
 );
+router.get(
+  "/mine",
+  verifyAccessToken,
+  requireRole("AUTHOR"),
+  expressAsyncHandler(PostController.getMyPosts)
+);
+router.get(
+  "/mine/:id",
+  verifyAccessToken,
+  requireRole("AUTHOR"),
+  expressAsyncHandler(PostController.getMyPost)
+);
 router.delete(
   "/remove/:id",
   verifyAccessToken,
@@ -44,6 +56,12 @@ router.post(
   "/read/:id",
   verifyAccessToken,
   expressAsyncHandler(PostController.recordPostRead)
+);
+
+router.post(
+  "/read/:id/time",
+  verifyAccessToken,
+  expressAsyncHandler(PostController.recordReadingTime)
 );
 
 router.post(

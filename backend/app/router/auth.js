@@ -34,6 +34,12 @@ router.get(
   expressAsyncHandler(UserAuthController.getUserProfile)
 );
 router.get("/dashboard", verifyAccessToken, expressAsyncHandler(UserAuthController.getDashboard));
+router.post(
+  "/writing-time",
+  verifyAccessToken,
+  requireRole("AUTHOR"),
+  expressAsyncHandler(UserAuthController.recordWritingTime)
+);
 router.patch("/:id/role", verifyAccessToken, requireRole("ADMIN"), expressAsyncHandler(UserAuthController.updateUserRole));
 router.get(
   "/list",

@@ -11,6 +11,7 @@ const { CommentController } = require("./comment.controller");
 const Controller = require("./controller");
 const { StatusCodes: HttpStatus } = require("http-status-codes");
 const { UserModel } = require("../../models/user");
+const { ReadingActivityModel } = require("../../models/readingActivity");
 const { transformPost } = require("../../utils/transformPost");
 const { default: mongoose } = require("mongoose");
 
@@ -111,6 +112,29 @@ class PostController extends Controller {
         totalPages,
         totalCount,
       },
+    });
+  }
+  async getMyPosts(req, res) {
+    const posts = await PostModel.find(
+      { author: req.user._id },
+      { title: 1, slug: 1, briefText: 1, category: 1, updatedAt: 1 }
+    )
+      .populate("category", "title slug")
+      .sort({ updatedAt: -1 });
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: { posts },
+    });
+  }
+  async getMyPost(req, res) {
+    const post = await PostModel.findById(req.params.id).populate("category", "title slug");
+    if (!post) throw createHttpError.NotFound("نوشته پیدا نشد.");
+    this.assertPostManager(req.user, post);
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: { post },
     });
   }
   async getBookmarkedPosts(req, res) {
@@ -222,6 +246,12 @@ class PostController extends Controller {
         ? { light: uploadedCoverPath, dark: uploadedCoverPath }
         : undefined);
 
+    const parseArray = (value) => {
+      if (typeof value !== "string") return value;
+      try { return JSON.parse(value); } catch { return value; }
+    };
+    rest.tags = parseArray(rest.tags);
+    rest.related = parseArray(rest.related);
     await validateAddNewPost({ ...rest, coverImage });
     const {
       title,
@@ -274,9 +304,11 @@ class PostController extends Controller {
     const post = await this.findPostById(id);
     this.assertPostManager(req.user, post);
     const data = copyObject(rest);
-    let blackListFields = ["time", "likes", "comments", "bookmarks", "author"];
-    deleteInvalidPropertyInObject(data, blackListFields);
-
+    for (const key of ["tags", "related"]) {
+      if (typeof data[key] === "string") {
+        try { data[key] = JSON.parse(data[key]); } catch { /* Keep invalid input for the update to reject. */ }
+      }
+    }
     let coverImage =
       typeof coverImageInput === "string"
         ? JSON.parse(coverImageInput)
@@ -351,6 +383,37 @@ class PostController extends Controller {
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
       data: { message: "خواندن نوشته ثبت شد." },
+    });
+  }
+  async recordReadingTime(req, res) {
+    const post = await this.findPostById(req.params.id);
+    const seconds = Number(req.body?.seconds);
+    const day = String(req.body?.day || "");
+    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 30) {
+      throw createHttpError.BadRequest("مدت هر بازه باید بین ۱ تا ۳۰ ثانیه باشد.");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+      throw createHttpError.BadRequest("تاریخ مطالعه معتبر نیست.");
+    }
+    const parsedDay = new Date(`${day}T00:00:00.000Z`);
+    if (Number.isNaN(parsedDay.getTime()) || parsedDay.toISOString().slice(0, 10) !== day) {
+      throw createHttpError.BadRequest("تاریخ مطالعه معتبر نیست.");
+    }
+
+    try {
+      await ReadingActivityModel.findOneAndUpdate(
+        { user: req.user._id, day },
+        { $inc: { seconds } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      await ReadingActivityModel.updateOne({ user: req.user._id, day }, { $inc: { seconds } });
+    }
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: { message: "زمان مطالعه ثبت شد." },
     });
   }
   async likePost(req, res) {

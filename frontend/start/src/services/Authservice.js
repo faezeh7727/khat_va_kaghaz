@@ -75,6 +75,14 @@ const Authservice = {
       throw new Error(getServerMessage(error), { cause: error });
     }
   },
+  async recordReadingTime(postId, seconds, day) {
+    try {
+      const response = await http.post(`/post/read/${encodeURIComponent(postId)}/time`, { seconds, day });
+      return response.data?.data || null;
+    } catch (error) {
+      throw new Error(getServerMessage(error), { cause: error });
+    }
+  },
   async getDashboard() {
     try {
       const response = await http.get("/user/dashboard");

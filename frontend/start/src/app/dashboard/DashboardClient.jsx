@@ -13,6 +13,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import Authservice from "@/services/Authservice";
 import ProfileStats from "../profile/_components/ProfileStats";
+import WeeklyReadingStreak from "./_components/WeeklyReadingStreak";
 
 const roleNames = { READER: "خواننده", AUTHOR: "نویسنده", ADMIN: "مدیر" };
 const roleDescriptions = {
@@ -94,6 +95,19 @@ export default function DashboardClient() {
         createdAt={user.createdAt}
         isLoading={!dashboard && !hasError}
         hasError={hasError}
+      />
+
+      {role === "AUTHOR" && (
+        <nav className="dashboard-author-actions" aria-label="ابزار نویسنده">
+          <Link className="author-action-button" href="/dashboard/posts">نوشته‌های من</Link>
+          <Link className="author-back-link" href="/dashboard/posts/new">نوشتن مطلب تازه</Link>
+        </nav>
+      )}
+
+      <WeeklyReadingStreak
+        activity={role === "AUTHOR" ? dashboard?.writingActivity || [] : dashboard?.readingActivity || []}
+        mode={role === "AUTHOR" ? "writing" : "reading"}
+        isLoading={!dashboard && !hasError}
       />
 
       <section className="profile-history dashboard-history" aria-labelledby="dashboard-history-title">

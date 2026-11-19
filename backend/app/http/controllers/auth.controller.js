@@ -17,6 +17,8 @@ const { UserModel } = require("../../models/user");
 const bcrypt = require("bcryptjs");
 const { PostModel } = require("../../models/post");
 const { CommentModel } = require("../../models/comment");
+const { ReadingActivityModel } = require("../../models/readingActivity");
+const { WritingActivityModel } = require("../../models/writingActivity");
 class UserAuthController extends Controller {
   constructor() {
     super();
@@ -181,6 +183,19 @@ class UserAuthController extends Controller {
   async getDashboard(req, res) {
     const user = req.user;
     const role = user.role || "READER";
+    const weekAgo = new Date();
+    weekAgo.setUTCDate(weekAgo.getUTCDate() - 8);
+    const fromDay = weekAgo.toISOString().slice(0, 10);
+    const [readingActivity, writingActivity] = await Promise.all([
+      ReadingActivityModel.find(
+        { user: user._id, day: { $gte: fromDay } },
+        { _id: 0, day: 1, seconds: 1 }
+      ).lean(),
+      WritingActivityModel.find(
+        { user: user._id, day: { $gte: fromDay } },
+        { _id: 0, day: 1, seconds: 1 }
+      ).lean(),
+    ]);
     let stats = {
       bookmarks: user.bookmarkedPosts?.length || 0,
       readPosts: user.readPosts?.length || 0,
@@ -214,7 +229,34 @@ class UserAuthController extends Controller {
 
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
-      data: { role, stats },
+      data: { role, stats, readingActivity, writingActivity },
+    });
+  }
+  async recordWritingTime(req, res) {
+    const seconds = Number(req.body?.seconds);
+    const day = String(req.body?.day || "");
+    const parsedDay = new Date(`${day}T00:00:00.000Z`);
+    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 30) {
+      throw createError.BadRequest("مدت هر بازه باید بین ۱ تا ۳۰ ثانیه باشد.");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(parsedDay.getTime()) || parsedDay.toISOString().slice(0, 10) !== day) {
+      throw createError.BadRequest("تاریخ فعالیت معتبر نیست.");
+    }
+
+    try {
+      await WritingActivityModel.findOneAndUpdate(
+        { user: req.user._id, day },
+        { $inc: { seconds } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } catch (error) {
+      if (error.code !== 11000) throw error;
+      await WritingActivityModel.updateOne({ user: req.user._id, day }, { $inc: { seconds } });
+    }
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: { message: "زمان نوشتن ثبت شد." },
     });
   }
   async updateUserRole(req, res) {
