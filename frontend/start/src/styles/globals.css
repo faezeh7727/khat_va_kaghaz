@@ -3479,6 +3479,7 @@ body { min-height: 100vh; }
 .dashboard-history-icon.is-bookmark { color: var(--accent-600); }
 .dashboard-history-icon.is-reading { color: var(--tertiary-700); }
 .dashboard-history-icon.is-role-activity { color: var(--secondary-700); }
+.dashboard-history-icon.is-feedback { color: #bf6b51; }
 .dashboard-history-copy { display: grid; min-width: 0; gap: 0.22rem; }
 .dashboard-history-copy > span { color: var(--text-secondary); font-size: 0.8rem; font-weight: 700; }
 .dashboard-history-copy > strong { overflow: hidden; color: var(--text-primary); font-size: 1.05rem; font-weight: 850; text-overflow: ellipsis; white-space: nowrap; }
@@ -3529,6 +3530,7 @@ body { min-height: 100vh; }
 .dashboard-comment-card header a:hover { color: var(--accent-600); }
 .dashboard-comment-card time { flex: 0 0 auto; color: var(--text-secondary); font-size: 0.72rem; }
 .dashboard-comment-card > p { margin: 0; color: var(--text-primary); font-size: 0.9rem; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.dashboard-feedback-author { border-top: 1px solid var(--border-default); padding-top: 0.55rem; color: var(--text-secondary); font-size: 0.74rem; }
 .dashboard-comments-empty { border: 1px solid var(--border-default); border-radius: 1rem; background: var(--background-card); padding: 1.2rem; color: var(--text-secondary); text-align: center; }
 .dashboard-comments-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; color: var(--text-secondary); font-size: 0.8rem; }
 .dashboard-comments-pagination button { display: inline-flex; align-items: center; gap: 0.35rem; border: 0; border-radius: 0.7rem; background: var(--accent-400); padding: 0.55rem 0.75rem; color: var(--primary-800); font: inherit; font-weight: 750; cursor: pointer; }
@@ -3576,6 +3578,7 @@ body { min-height: 100vh; }
 .dark-mode .dashboard-history-icon.is-bookmark { color: var(--accent-300); }
 .dark-mode .dashboard-history-icon.is-reading { color: #ffd0a8; }
 .dark-mode .dashboard-history-icon.is-role-activity { color: #b6ddd4; }
+.dark-mode .dashboard-history-icon.is-feedback { color: #f0a18f; }
 .dark-mode .dashboard-history-badge { background: var(--accent-600); color: #fff; }
 .dark-mode .dashboard-history-link:hover { background: #303643; }
 .dark-mode .dashboard-history-chevron,

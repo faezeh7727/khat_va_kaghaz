@@ -36,6 +36,12 @@ router.get(
 router.get("/dashboard", verifyAccessToken, expressAsyncHandler(UserAuthController.getDashboard));
 router.get("/recommendations", verifyAccessToken, expressAsyncHandler(UserAuthController.getRecommendations));
 router.get("/comments", verifyAccessToken, expressAsyncHandler(UserAuthController.getMyComments));
+router.get(
+  "/author-feedback",
+  verifyAccessToken,
+  requireRole("AUTHOR"),
+  expressAsyncHandler(UserAuthController.getAuthorFeedback)
+);
 router.post(
   "/writing-time",
   verifyAccessToken,

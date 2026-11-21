@@ -285,6 +285,39 @@ class UserAuthController extends Controller {
       },
     });
   }
+  async getAuthorFeedback(req, res) {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, Number.parseInt(req.query.limit, 10) || 3));
+    const postIds = await PostModel.distinct("_id", { author: req.user._id });
+    const filter = { post: { $in: postIds }, user: { $ne: req.user._id } };
+    const [comments, total] = await Promise.all([
+      CommentModel.find(filter, { post: 1, user: 1, content: 1, createdAt: 1 })
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate({ path: "post", select: "title slug" })
+        .populate({ path: "user", select: "name username" })
+        .lean(),
+      CommentModel.countDocuments(filter),
+    ]);
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        comments: comments
+          .filter(({ post }) => post)
+          .map(({ _id, post, user, content, createdAt }) => ({
+            _id,
+            title: post.title,
+            slug: post.slug,
+            authorName: user?.name || user?.username || "خواننده",
+            text: content?.text || "",
+            createdAt,
+          })),
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      },
+    });
+  }
   async getRecommendations(req, res) {
     const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
     const limit = Math.min(24, Math.max(1, Number.parseInt(req.query.limit, 10) || 6));
@@ -369,15 +402,17 @@ class UserAuthController extends Controller {
       ]);
       stats = { ...stats, posts, users, comments };
     } else if (role === "AUTHOR") {
-      const [posts, likes] = await Promise.all([
+      const authorPostIds = await PostModel.distinct("_id", { author: user._id });
+      const [posts, likes, feedback] = await Promise.all([
         PostModel.countDocuments({ author: user._id }),
         PostModel.aggregate([
           { $match: { author: user._id } },
           { $project: { count: { $size: { $ifNull: ["$likes", []] } } } },
           { $group: { _id: null, total: { $sum: "$count" } } },
         ]),
+        CommentModel.countDocuments({ post: { $in: authorPostIds }, user: { $ne: user._id } }),
       ]);
-      stats = { ...stats, posts, likes: likes[0]?.total || 0 };
+      stats = { ...stats, posts, likes: likes[0]?.total || 0, feedback };
     } else {
       const comments = await CommentModel.countDocuments({ user: user._id });
       stats = {

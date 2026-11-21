@@ -5,6 +5,7 @@ import {
   BookOpenIcon,
   CalendarDaysIcon,
   ChatBubbleLeftRightIcon,
+  ChatBubbleLeftEllipsisIcon,
   ClockIcon,
   ChevronLeftIcon,
   ChevronDownIcon,
@@ -129,6 +130,17 @@ export default function DashboardHistory({ role, stats, createdAt, recentReads =
             </button>
           )}
         </section>
+
+        {role === "AUTHOR" && (
+          <article className="dashboard-history-row">
+            <span className="dashboard-history-icon is-feedback"><ChatBubbleLeftEllipsisIcon aria-hidden="true" /></span>
+            <div className="dashboard-history-copy">
+              <span>بازخورد خوانندگان</span>
+              <strong>{valueText(stats?.feedback, isLoading, hasError)} <small>دیدگاه</small></strong>
+            </div>
+            <Link className="dashboard-history-action" href="/dashboard/feedback">مشاهده فهرست <HistoryArrow /></Link>
+          </article>
+        )}
 
         <article className="dashboard-history-row">
           <span className="dashboard-history-icon is-role-activity"><ActivityIcon aria-hidden="true" /></span>

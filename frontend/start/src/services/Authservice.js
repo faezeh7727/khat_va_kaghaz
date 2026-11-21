@@ -111,6 +111,14 @@ const Authservice = {
       throw new Error(getServerMessage(error), { cause: error });
     }
   },
+  async getAuthorFeedback(page = 1, limit = 3) {
+    try {
+      const response = await http.get(`/user/author-feedback?page=${page}&limit=${limit}`);
+      return response.data?.data || { comments: [], pagination: null };
+    } catch (error) {
+      throw new Error(getServerMessage(error), { cause: error });
+    }
+  },
   async getUsers() {
     try {
       const response = await http.get("/user/list");
