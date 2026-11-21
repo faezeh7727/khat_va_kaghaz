@@ -103,6 +103,7 @@ export default function DashboardClient() {
 
       <RecommendedArticle
         recommendation={dashboard?.recommendedPost || null}
+        recommendations={dashboard?.recommendedPosts || []}
         interests={user.interests || []}
         isLoading={!dashboard && !hasError}
         hasError={hasError}

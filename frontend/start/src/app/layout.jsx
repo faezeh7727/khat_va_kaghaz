@@ -1,6 +1,7 @@
 /** @format */
 import localFont from "next/font/local";
 import SiteHeader from "@/components/SiteHeader";
+import GlobalNavigationTrail from "./_components/GlobalNavigationTrail";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { Toaster } from "react-hot-toast";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider>
           <AuthProvider>
             <SiteHeader />
+            <GlobalNavigationTrail />
             <div>{children}</div>
             <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
           </AuthProvider>

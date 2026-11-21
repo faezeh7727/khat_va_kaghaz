@@ -7,15 +7,17 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import {
   ArrowLeftIcon,
   AtSymbolIcon,
+  BookOpenIcon,
   EyeIcon,
   EyeSlashIcon,
   LockClosedIcon,
+  PencilSquareIcon,
   ShieldCheckIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
@@ -40,10 +42,13 @@ export default function AuthForm({ mode = "signin" }) {
     password: isSignUp
       ? yup.string().min(8, "گذرواژه باید حداقل ۸ نویسه باشد").required("وارد کردن گذرواژه الزامی است")
       : yup.string().required("وارد کردن گذرواژه الزامی است"),
+    role: isSignUp
+      ? yup.string().oneOf(["READER", "AUTHOR"], "نقش انتخاب‌شده معتبر نیست.").required("نقش خود را انتخاب کنید.")
+      : yup.string().notRequired(),
   }), [isSignUp]);
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", role: "READER" },
     mode: "onSubmit",
     reValidateMode: "onChange",
   });
@@ -51,7 +56,7 @@ export default function AuthForm({ mode = "signin" }) {
   async function onSubmit(values) {
     try {
       const result = isSignUp
-        ? await signup({ name: values.name, email: values.email, password: values.password })
+        ? await signup({ name: values.name, email: values.email, password: values.password, role: values.role })
         : await signin({ email: values.email, password: values.password });
       toast.success(result.message || "Login successful");
       router.replace("/profile");
@@ -59,6 +64,8 @@ export default function AuthForm({ mode = "signin" }) {
       toast.error(error.message || "The request failed. Please try again.");
     }
   }
+
+  const selectedRole = useWatch({ control, name: "role" });
 
   return (
     <section className="auth-card" aria-labelledby="auth-title">
@@ -129,6 +136,30 @@ export default function AuthForm({ mode = "signin" }) {
               autoComplete="name"
               startAdornment={<UserIcon />}
             />
+          )}
+          {isSignUp && (
+            <fieldset className="auth-role-fieldset">
+              <legend>نقش خود را انتخاب کنید</legend>
+              <div className="auth-role-options">
+                <label className={`auth-role-option${selectedRole === "READER" ? " is-selected" : ""}`}>
+                  <input className="auth-role-radio" type="radio" value="READER" {...register("role")} />
+                  <span className="auth-role-icon"><BookOpenIcon aria-hidden="true" /></span>
+                  <span className="auth-role-copy">
+                    <strong>خواننده</strong>
+                    <small>خواندن و ذخیره‌ی نوشته‌ها</small>
+                  </span>
+                </label>
+                <label className={`auth-role-option${selectedRole === "AUTHOR" ? " is-selected" : ""}`}>
+                  <input className="auth-role-radio" type="radio" value="AUTHOR" {...register("role")} />
+                  <span className="auth-role-icon"><PencilSquareIcon aria-hidden="true" /></span>
+                  <span className="auth-role-copy">
+                    <strong>نویسنده</strong>
+                    <small>نوشتن و مدیریت نوشته‌های خود</small>
+                  </span>
+                </label>
+              </div>
+              {errors.role && <p className="auth-role-error" role="alert">{errors.role.message}</p>}
+            </fieldset>
           )}
           <RHFTextField
             type="text"

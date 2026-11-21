@@ -32,9 +32,9 @@ function normalizeRecommendationText(value) {
     .trim();
 }
 
-async function findRecommendedPost(user) {
+async function findRecommendedPosts(user) {
   const interests = [...new Set((user.interests || []).map(normalizeRecommendationText).filter(Boolean))];
-  if (!interests.length) return null;
+  if (!interests.length) return [];
 
   const categories = await CategoryModel.find({}, { title: 1 }).lean();
   const matchingCategoryIds = categories
@@ -42,7 +42,7 @@ async function findRecommendedPost(user) {
     .map(({ _id }) => _id);
   const clauses = interests.flatMap((interest) => {
     const regex = new RegExp(interest.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-    return [{ title: regex }, { slug: regex }, { briefText: regex }, { tags: regex }];
+    return [{ title: regex }, { slug: regex }, { briefText: regex }, { text: regex }, { tags: regex }];
   });
   if (matchingCategoryIds.length) clauses.push({ category: { $in: matchingCategoryIds } });
 
@@ -50,6 +50,7 @@ async function findRecommendedPost(user) {
     title: 1,
     slug: 1,
     briefText: 1,
+    text: 1,
     category: 1,
     tags: 1,
     readingTime: 1,
@@ -66,6 +67,7 @@ async function findRecommendedPost(user) {
       { value: post.title, weight: 4 },
       { value: post.slug, weight: 3 },
       { value: post.briefText, weight: 2 },
+      { value: post.text, weight: 1 },
       { value: post.category?.title, weight: 5 },
       ...(post.tags || []).map((value) => ({ value, weight: 5 })),
     ].map(({ value, weight }) => ({ value: normalizeRecommendationText(value), weight }));
@@ -78,19 +80,18 @@ async function findRecommendedPost(user) {
   }).filter(({ score }) => score > 0);
 
   rankedPosts.sort((left, right) => right.score - left.score || new Date(right.post.createdAt) - new Date(left.post.createdAt));
-  const recommended = rankedPosts[0]?.post;
-  if (!recommended) return null;
-  return {
-    _id: recommended._id,
-    title: recommended.title,
-    slug: recommended.slug,
-    briefText: recommended.briefText,
-    category: recommended.category,
-    tags: recommended.tags || [],
-    readingTime: recommended.readingTime,
-    author: recommended.author,
-    matchedInterests: rankedPosts[0].matchedInterests,
-  };
+  return rankedPosts.map(({ post, matchedInterests }) => ({
+    _id: post._id,
+    title: post.title,
+    slug: post.slug,
+    briefText: post.briefText,
+    category: post.category,
+    tags: post.tags || [],
+    readingTime: post.readingTime,
+    author: post.author,
+    createdAt: post.createdAt,
+    matchedInterests,
+  }));
 }
 
 class UserAuthController extends Controller {
@@ -98,8 +99,7 @@ class UserAuthController extends Controller {
     super();
   }
   async signup(req, res) {
-    await validateSignupSchema(req.body);
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = await validateSignupSchema(req.body);
 
     // checking if the user is already in the data base :
     const existedUser = await this.checkUserExist(email);
@@ -114,6 +114,7 @@ class UserAuthController extends Controller {
       name: name,
       email: email.toLowerCase().trim(),
       password: hashedPassword,
+      role,
     });
 
     await setAccessToken(res, user);
@@ -284,13 +285,39 @@ class UserAuthController extends Controller {
       },
     });
   }
+  async getRecommendations(req, res) {
+    const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(24, Math.max(1, Number.parseInt(req.query.limit, 10) || 6));
+    const excludedIds = new Set(
+      String(req.query.exclude || "")
+        .split(",")
+        .filter((id) => /^[a-f\d]{24}$/i.test(id))
+    );
+    const afterTimestamp = Date.parse(req.query.after || "");
+    const recommendations = await findRecommendedPosts(req.user);
+    const available = recommendations.filter((post) =>
+      !excludedIds.has(String(post._id)) &&
+      (!Number.isFinite(afterTimestamp) || new Date(post.createdAt).getTime() > afterTimestamp)
+    );
+    if (req.query.latest === "true") {
+      available.sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+    }
+
+    return res.status(HttpStatus.OK).json({
+      statusCode: HttpStatus.OK,
+      data: {
+        recommendations: available.slice((page - 1) * limit, page * limit),
+        pagination: { page, limit, total: available.length, totalPages: Math.ceil(available.length / limit) },
+      },
+    });
+  }
   async getDashboard(req, res) {
     const user = req.user;
     const role = user.role || "READER";
     const weekAgo = new Date();
     weekAgo.setUTCDate(weekAgo.getUTCDate() - 8);
     const fromDay = weekAgo.toISOString().slice(0, 10);
-    const [readingActivity, writingActivity, recentReads, recommendedPost] = await Promise.all([
+    const [readingActivity, writingActivity, recentReads, recommendedPosts] = await Promise.all([
       ReadingActivityModel.find(
         { user: user._id, day: { $gte: fromDay } },
         { _id: 0, day: 1, seconds: 1 }
@@ -304,7 +331,7 @@ class UserAuthController extends Controller {
         .limit(3)
         .populate({ path: "post", select: "title slug" })
         .lean(),
-      findRecommendedPost(user),
+      findRecommendedPosts(user),
     ]);
     let recentReadItems = recentReads
       .filter(({ post }) => post)
@@ -368,7 +395,8 @@ class UserAuthController extends Controller {
         readingActivity,
         writingActivity,
         recentReads: recentReadItems,
-        recommendedPost,
+        recommendedPost: recommendedPosts[0] || null,
+        recommendedPosts: recommendedPosts.slice(0, 3),
       },
     });
   }

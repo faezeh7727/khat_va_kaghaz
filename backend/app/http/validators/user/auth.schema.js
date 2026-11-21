@@ -16,6 +16,7 @@ async function validateSignupSchema(data) {
       .min(8)
       .required()
       .error(createHttpError.BadRequest("رمز عبور باید حداقل 8 کاراکتر باشد")),
+    role: Joi.string().valid("READER", "AUTHOR").default("READER"),
   });
   return await signupSchema.validateAsync(data);
 }

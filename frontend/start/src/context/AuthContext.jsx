@@ -52,7 +52,10 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const signup = useCallback((values) => authenticate("signup", values), [authenticate]);
+  const signup = useCallback((values) => authenticate("signup", {
+    ...values,
+    role: values.role || "READER",
+  }), [authenticate]);
   const signin = useCallback((values) => authenticate("signin", values), [authenticate]);
   const logout = useCallback(async () => {
     try {

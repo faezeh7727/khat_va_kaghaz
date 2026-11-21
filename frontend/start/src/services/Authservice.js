@@ -91,6 +91,18 @@ const Authservice = {
       throw new Error(getServerMessage(error), { cause: error });
     }
   },
+  async getRecommendations({ page = 1, limit = 6, exclude = [], after, latest = false } = {}) {
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (exclude.length) params.set("exclude", exclude.join(","));
+      if (after) params.set("after", after);
+      if (latest) params.set("latest", "true");
+      const response = await http.get(`/user/recommendations?${params.toString()}`);
+      return response.data?.data || { recommendations: [], pagination: null };
+    } catch (error) {
+      throw new Error(getServerMessage(error), { cause: error });
+    }
+  },
   async getMyComments(page = 1, limit = 3) {
     try {
       const response = await http.get(`/user/comments?page=${page}&limit=${limit}`);
