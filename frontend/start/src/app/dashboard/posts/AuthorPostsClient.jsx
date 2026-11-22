@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, PencilSquareIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import AuthorOnly from "../_components/AuthorOnly";
 import PostEditorService from "@/services/PostEditorService";
+import Modal from "@/ui/Modal";
 
 const dateFormat = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" });
 
@@ -12,6 +13,9 @@ function AuthorPostsContent() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [postToDelete, setPostToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -22,10 +26,26 @@ function AuthorPostsContent() {
     return () => { active = false; };
   }, []);
 
+  async function confirmDelete() {
+    if (!postToDelete || deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await PostEditorService.remove(postToDelete._id);
+      setPosts((current) => current.filter((post) => post._id !== postToDelete._id));
+      setPostToDelete(null);
+    } catch {
+      setDeleteError("حذف نوشته انجام نشد. اتصال را بررسی کن و دوباره تلاش کن.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
+    <>
     <main className="profile-page dashboard-page author-posts-page" dir="rtl">
       <header className="author-page-heading">
-        <div><span className="dashboard-kicker">پنل نویسنده</span><h1>نوشته‌های من</h1><p>نوشته‌هایت را مدیریت کن یا مطلب تازه‌ای بنویس.</p></div>
+        <div><span className="dashboard-kicker">پنل نویسنده</span><h1 className="author-posts-title">نوشته‌های من</h1><p>نوشته‌هایت را مدیریت کن یا مطلب تازه‌ای بنویس.</p></div>
         <Link className="author-action-button" href="/dashboard/posts/new"><PlusIcon aria-hidden="true" /> نوشتن مطلب</Link>
       </header>
 
@@ -46,12 +66,29 @@ function AuthorPostsContent() {
               <div className="author-post-actions">
                 <Link className="author-edit-link" href={`/dashboard/posts/${post._id}/edit`}><PencilSquareIcon aria-hidden="true" /> ویرایش</Link>
                 {post.slug && post.status !== "draft" && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`} target="_blank" rel="noreferrer">مشاهده <ArrowLeftIcon aria-hidden="true" /></Link>}
+                <button className="author-delete-link" type="button" onClick={() => { setDeleteError(""); setPostToDelete(post); }} aria-label={`حذف نوشته ${post.title || "بدون عنوان"}`}><TrashIcon aria-hidden="true" /><span>حذف</span></button>
               </div>
             </article>
           ))}
         </div>
       )}
     </main>
+    {postToDelete && <Modal
+      eyebrow="حذف نوشته"
+      title="از حذف این نوشته مطمئنی؟"
+      description={`«${postToDelete.title || "بدون عنوان"}» برای همیشه حذف می‌شود و امکان بازگرداندنش نیست.`}
+      onClose={() => { if (!deleting) { setPostToDelete(null); setDeleteError(""); } }}
+      closeDisabled={deleting}
+      size="sm"
+      className="author-delete-modal"
+    >
+      {deleteError && <p className="author-posts-message is-error" role="alert">{deleteError}</p>}
+      <div className="author-delete-confirm-actions">
+        <button className="author-back-link" type="button" onClick={() => { setPostToDelete(null); setDeleteError(""); }} disabled={deleting}>انصراف</button>
+        <button className="author-delete-confirm-button" type="button" onClick={confirmDelete} disabled={deleting}><TrashIcon aria-hidden="true" />{deleting ? "در حال حذف…" : "بله، حذف شود"}</button>
+      </div>
+    </Modal>}
+    </>
   );
 }
 

@@ -32,6 +32,10 @@ const PostEditorService = {
       : await http.post(url, formData, { headers: { "Content-Type": "multipart/form-data" } });
     return response.data?.data || null;
   }),
+  remove: (id) => request(async () => {
+    const response = await http.delete(`/post/remove/${encodeURIComponent(id)}`);
+    return response.data?.data || null;
+  }),
   recordWritingTime: (seconds, day) => request(async () => {
     const response = await http.post("/user/writing-time", { seconds, day });
     return response.data?.data || null;
