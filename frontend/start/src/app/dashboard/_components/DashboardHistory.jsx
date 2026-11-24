@@ -142,14 +142,16 @@ export default function DashboardHistory({ role, stats, createdAt, recentReads =
           </article>
         )}
 
-        <article className="dashboard-history-row">
-          <span className="dashboard-history-icon is-role-activity"><ActivityIcon aria-hidden="true" /></span>
-          <div className="dashboard-history-copy">
-            <span>{activity.label}</span>
-            <strong>{valueText(activity.value, isLoading, hasError)} <small>{role === "READER" ? "دیدگاه" : "مورد"}</small></strong>
-          </div>
-          <Link className="dashboard-history-action" href={activity.href}>مشاهده فهرست <HistoryArrow /></Link>
-        </article>
+        {role !== "AUTHOR" && (
+          <article className="dashboard-history-row">
+            <span className="dashboard-history-icon is-role-activity"><ActivityIcon aria-hidden="true" /></span>
+            <div className="dashboard-history-copy">
+              <span>{activity.label}</span>
+              <strong>{valueText(activity.value, isLoading, hasError)} <small>{role === "READER" ? "دیدگاه" : "مورد"}</small></strong>
+            </div>
+            <Link className="dashboard-history-action" href={activity.href}>مشاهده فهرست <HistoryArrow /></Link>
+          </article>
+        )}
       </div>
     </section>
   );

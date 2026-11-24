@@ -2,6 +2,7 @@ const createHttpError = require("http-errors");
 const path = require("path");
 const { CategoryModel } = require("../../models/category");
 const { PostModel } = require("../../models/post");
+const { CommentModel } = require("../../models/comment");
 const {
   copyObject,
   deleteInvalidPropertyInObject,
@@ -119,14 +120,49 @@ class PostController extends Controller {
   async getMyPosts(req, res) {
     const posts = await PostModel.find(
       { author: req.user._id },
-      { title: 1, slug: 1, briefText: 1, category: 1, status: 1, updatedAt: 1 }
+      { title: 1, slug: 1, briefText: 1, category: 1, status: 1, updatedAt: 1, likes: 1 }
     )
       .populate("category", "title slug")
       .sort({ updatedAt: -1 });
 
+    const commentStats = posts.length
+      ? await CommentModel.aggregate([
+        { $match: { post: { $in: posts.map(({ _id }) => _id) }, status: 2 } },
+        {
+          $project: {
+            post: 1,
+            acceptedAnswers: {
+              $filter: {
+                input: { $ifNull: ["$answers", []] },
+                as: "answer",
+                cond: { $eq: ["$$answer.status", 2] },
+              },
+            },
+          },
+        },
+        {
+          $group: {
+            _id: "$post",
+            comments: { $sum: 1 },
+            answers: { $sum: { $size: "$acceptedAnswers" } },
+          },
+        },
+      ])
+      : [];
+    const commentsByPost = new Map(
+      commentStats.map(({ _id, comments, answers }) => [String(_id), comments + answers])
+    );
+    const responsePosts = posts.map((post) => {
+      const data = post.toObject();
+      data.likesCount = post.likes?.length || 0;
+      data.commentsCount = commentsByPost.get(String(post._id)) || 0;
+      delete data.likes;
+      return data;
+    });
+
     return res.status(HttpStatus.OK).json({
       statusCode: HttpStatus.OK,
-      data: { posts },
+      data: { posts: responsePosts },
     });
   }
   async getMyPost(req, res) {

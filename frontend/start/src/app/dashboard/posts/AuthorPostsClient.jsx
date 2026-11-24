@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftIcon, PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ArrowLeftIcon, BookOpenIcon, CalendarDaysIcon, ChatBubbleLeftIcon, EyeIcon, HeartIcon, PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import AuthorOnly from "../_components/AuthorOnly";
 import PostEditorService from "@/services/PostEditorService";
 import Modal from "@/ui/Modal";
 import SubmitButtun from "@/ui/SubmitButtun";
 
 const dateFormat = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" });
+const numberFormat = new Intl.NumberFormat("fa-IR");
 
 function AuthorPostsContent() {
   const [posts, setPosts] = useState([]);
@@ -60,13 +61,24 @@ function AuthorPostsContent() {
           {posts.map((post) => (
             <article className="author-post-row" key={post._id}>
               <div className="author-post-copy">
-                <div className="author-post-meta"><span>{post.category?.title || "بدون دسته‌بندی"}</span><span className={`author-post-status${post.status === "draft" ? " is-draft" : ""}`}>{post.status === "draft" ? "پیش‌نویس" : "منتشرشده"}</span><time dateTime={post.updatedAt}>{post.updatedAt ? dateFormat.format(new Date(post.updatedAt)) : ""}</time></div>
+                <div className="author-post-meta">
+                  <span className="author-post-category"><BookOpenIcon aria-hidden="true" />{post.category?.title || "بدون دسته‌بندی"}</span>
+                  <span className={`author-post-status${post.status === "draft" ? " is-draft" : ""}`}><i aria-hidden="true" />{post.status === "draft" ? "پیش‌نویس" : "منتشرشده"}</span>
+                  <time className="author-post-date" dateTime={post.updatedAt}><CalendarDaysIcon aria-hidden="true" />{post.updatedAt ? dateFormat.format(new Date(post.updatedAt)) : ""}</time>
+                </div>
                 <h2>{post.title}</h2>
                 <p>{post.briefText}</p>
+                {post.status !== "draft" && (
+                  <div className="author-post-metrics" aria-label="آمار نوشته">
+                    {(post.viewsCount ?? post.viewCount ?? post.views) != null && <span><EyeIcon aria-hidden="true" />{numberFormat.format(post.viewsCount ?? post.viewCount ?? post.views)} <small>بازدید</small></span>}
+                    <span><HeartIcon aria-hidden="true" />{numberFormat.format(post.likesCount || 0)} <small>پسند</small></span>
+                    <span><ChatBubbleLeftIcon aria-hidden="true" />{numberFormat.format(post.commentsCount || 0)} <small>نظر</small></span>
+                  </div>
+                )}
               </div>
               <div className="author-post-actions">
+                {post.slug && post.status !== "draft" && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`}>مشاهده نوشته <ArrowLeftIcon aria-hidden="true" /></Link>}
                 <Link className="author-edit-link" href={`/dashboard/posts/${post._id}/edit`}><PencilSquareIcon aria-hidden="true" /> ویرایش</Link>
-                {post.slug && post.status !== "draft" && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`}>مشاهده <ArrowLeftIcon aria-hidden="true" /></Link>}
                 <button className="author-delete-link" type="button" onClick={() => { setDeleteError(""); setPostToDelete(post); }} aria-label={`حذف نوشته ${post.title || "بدون عنوان"}`}><TrashIcon aria-hidden="true" /><span>حذف</span></button>
               </div>
             </article>

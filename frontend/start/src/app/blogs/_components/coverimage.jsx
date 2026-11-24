@@ -16,6 +16,7 @@ export default function Coverimage({
   postId,
   isBookmarked,
   showBookmark = false,
+  sizes = "(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 320px",
   className = "",
 }) {
   const { theme, isReady } = useTheme();
@@ -32,7 +33,7 @@ export default function Coverimage({
         src={src}
         alt={title}
         fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 320px"
+        sizes={sizes}
         className="post-card-cover-image"
         unoptimized={isRemoteImage}
       />

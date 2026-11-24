@@ -2,7 +2,7 @@
 
 import { notFound } from "next/navigation";
 import Author from "../_components/author";
-import PostInteraction from "../_components/postinteraction";
+import PostInteraction, { BookmarkAction, SharePostAction } from "../_components/postinteraction";
 import PostReadTracker from "../_components/postreadtracker";
 import Coverimage from "../_components/coverimage";
 import numberFormatter from "@/utils/numberformater";
@@ -25,69 +25,74 @@ export default async function BlogPostPage({ params }) {
   if (!post) notFound();
 
   return (
-    <article className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:py-12">
-      <PostReadTracker postId={post._id} />
-      <header className="mb-8 grid gap-5">
-        {post.category?.title && (
-          <span className="post-card-category w-fit">
-            {post.category.title}
-          </span>
-        )}
-        <h1 className="text-3xl font-extrabold leading-relaxed text-text-primary sm:text-4xl">
-          {post.title}
-        </h1>
-        {post.briefText && (
-          <p className="text-lg leading-9 text-text-secondary">
-            {post.briefText}
-          </p>
-        )}
-        <Author author={post.author} />
-        <PostInteraction
-          postId={post._id}
-          slug={post.slug}
-          isLiked={post.isLiked}
-          likesCount={post.likesCount}
-          commentsCount={post.commentsCount}
-          className="post-interactions-under-title"
-        />
-      </header>
+    <main className="reading-page-shell" dir="rtl">
+      <div className="reading-page-layout">
+        <article className="reading-article">
+          <PostReadTracker postId={post._id} />
+          <header className="reading-article-header">
+            {post.category?.title && (
+              <span className="reading-article-category">{post.category.title}</span>
+            )}
+            <h1>{post.title}</h1>
+            {post.briefText && <p className="reading-article-brief">{post.briefText}</p>}
+            <Author author={post.author} className="reading-article-author" />
+          </header>
 
-      <Coverimage
-        title={post.title}
-        slug={post.slug}
-        coverImageUrl={post.coverImageUrl}
-        readingTime={post.readingTime}
-        className="blog-post-cover"
-      />
+          <Coverimage
+            title={post.title}
+            slug={post.slug}
+            coverImageUrl={post.coverImageUrl}
+            readingTime={post.readingTime}
+            sizes="(max-width: 640px) calc(100vw - 2rem), (max-width: 1024px) calc(100vw - 3rem), 832px"
+            className="blog-post-cover reading-article-cover"
+          />
 
-      <div className="whitespace-pre-wrap text-base leading-9 text-text-primary sm:text-lg">
-        {post.text}
+          <div className="reading-article-body">{post.text}</div>
+          <section
+            id="comments"
+            className="post-comments reading-article-comments"
+            aria-labelledby="post-comments-title"
+          >
+            <h2 id="post-comments-title">
+              دیدگاه‌ها <span>({numberFormatter(post.commentsCount)})</span>
+            </h2>
+            {post.comments?.length ? (
+              <ol className="post-comments-list">
+                {post.comments.map((comment) => (
+                  <li key={comment._id} className="post-comment">
+                    <div className="post-comment-meta">
+                      <strong>{comment.user?.name || "کاربر"}</strong>
+                      {comment.createdAt && <time>{comment.createdAt}</time>}
+                    </div>
+                    <p>{comment.content?.text}</p>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p className="post-comments-empty">
+                هنوز دیدگاهی برای این نوشته ثبت نشده است.
+              </p>
+            )}
+          </section>
+        </article>
+
+        <aside className="reading-engagement-rail" aria-label="ابزارهای تعامل با نوشته">
+          <PostInteraction
+            postId={post._id}
+            slug={post.slug}
+            isLiked={post.isLiked}
+            likesCount={post.likesCount}
+            commentsCount={post.commentsCount}
+            className="reading-rail-interactions"
+          />
+          <BookmarkAction
+            postId={post._id}
+            isBookmarked={post.isBookmarked}
+            className="reading-rail-bookmark"
+          />
+          <SharePostAction slug={post.slug} title={post.title} />
+        </aside>
       </div>
-      <section
-        id="comments"
-        className="post-comments"
-        aria-labelledby="post-comments-title"
-      >
-        <h2 id="post-comments-title">
-          دیدگاه‌ها <span>({numberFormatter(post.commentsCount)})</span>
-        </h2>
-        {post.comments?.length ?
-          <ol className="post-comments-list">
-            {post.comments.map((comment) => (
-              <li key={comment._id} className="post-comment">
-                <div className="post-comment-meta">
-                  <strong>{comment.user?.name || "کاربر"}</strong>
-                  {comment.createdAt && <time>{comment.createdAt}</time>}
-                </div>
-                <p>{comment.content?.text}</p>
-              </li>
-            ))}
-          </ol>
-        : <p className="post-comments-empty">
-            هنوز دیدگاهی برای این نوشته ثبت نشده است.
-          </p>
-        }
-      </section>
-    </article>
+    </main>
   );
 }

@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
+  Bars3Icon,
+  BookOpenIcon,
+  PencilIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/context/AuthContext";
 import Authservice from "@/services/Authservice";
@@ -81,8 +84,16 @@ export default function DashboardClient() {
 
       {role === "AUTHOR" && (
         <nav className="dashboard-author-actions" aria-label="ابزار نویسنده">
-          <Link className="author-action-button" href="/dashboard/posts">نوشته‌های من</Link>
-          <Link className="author-back-link" href="/dashboard/posts/new">نوشتن مطلب تازه</Link>
+          <Link className="dashboard-author-link dashboard-author-link-posts" href="/dashboard/posts">
+            <BookOpenIcon aria-hidden="true" />
+            <span>نوشته‌های من</span>
+            {stats?.posts != null && <span className="dashboard-author-count">{new Intl.NumberFormat("fa-IR").format(stats.posts)}</span>}
+            <Bars3Icon className="dashboard-author-menu-icon" aria-hidden="true" />
+          </Link>
+          <Link className="dashboard-author-link dashboard-author-link-new" href="/dashboard/posts/new">
+            <span>نوشتن مطلب تازه</span>
+            <PencilIcon aria-hidden="true" />
+          </Link>
         </nav>
       )}
 

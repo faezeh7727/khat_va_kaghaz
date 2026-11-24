@@ -8,6 +8,7 @@ import {
   HeartIcon as HeartOutlineIcon,
   BookmarkIcon,
   BookmarkSlashIcon,
+  ShareIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 import ButtonIcon from "@/ui/buttonicon";
@@ -153,5 +154,35 @@ export function BookmarkAction({ postId, isBookmarked = false, className = "" })
         {bookmarked ? <BookmarkSlashIcon aria-hidden="true" /> : <BookmarkIcon aria-hidden="true" />}
       </ButtonIcon>
     </span>
+  );
+}
+
+export function SharePostAction({ slug, title }) {
+  async function sharePost() {
+    const url = `${window.location.origin}/blogs/${encodeURIComponent(slug)}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+      } else if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        toast.success("پیوند نوشته کپی شد.");
+      } else {
+        toast.error("اشتراک‌گذاری در این مرورگر در دسترس نیست.");
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") toast.error("اشتراک‌گذاری انجام نشد.");
+    }
+  }
+
+  return (
+    <ButtonIcon
+      aria-label="اشتراک‌گذاری نوشته"
+      title="اشتراک‌گذاری"
+      variant="outline"
+      className="reading-rail-share"
+      onClick={sharePost}
+    >
+      <ShareIcon aria-hidden="true" />
+    </ButtonIcon>
   );
 }
