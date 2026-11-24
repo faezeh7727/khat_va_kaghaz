@@ -10,24 +10,31 @@ import { BookmarkAction } from "./postinteraction";
 export default function Coverimage({
   title,
   slug,
+  coverImageUrl,
   category,
   readingTime,
   postId,
   isBookmarked,
   showBookmark = false,
+  className = "",
 }) {
   const { theme, isReady } = useTheme();
   const activeTheme = isReady && theme === "dark" ? "dark" : "light";
-  const src = `/blog-covers/${slug}-${activeTheme}.webp`;
+  const src =
+    coverImageUrl?.[activeTheme] ||
+    coverImageUrl?.light ||
+    `/blog-covers/${slug}-${activeTheme}.webp`;
+  const isRemoteImage = /^https?:\/\//i.test(src);
 
   return (
-    <div className="post-card-cover" data-post-slug={slug}>
+    <div className={`post-card-cover ${className}`.trim()} data-post-slug={slug}>
       <Image
         src={src}
         alt={title}
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 45vw, 320px"
         className="post-card-cover-image"
+        unoptimized={isRemoteImage}
       />
       <div
         className={`post-card-cover-top${showBookmark ? " has-post-actions" : ""}`}

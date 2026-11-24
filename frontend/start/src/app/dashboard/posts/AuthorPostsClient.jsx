@@ -6,6 +6,7 @@ import { ArrowLeftIcon, PencilSquareIcon, PlusIcon, TrashIcon } from "@heroicons
 import AuthorOnly from "../_components/AuthorOnly";
 import PostEditorService from "@/services/PostEditorService";
 import Modal from "@/ui/Modal";
+import SubmitButtun from "@/ui/SubmitButtun";
 
 const dateFormat = new Intl.DateTimeFormat("fa-IR", { dateStyle: "medium" });
 
@@ -65,7 +66,7 @@ function AuthorPostsContent() {
               </div>
               <div className="author-post-actions">
                 <Link className="author-edit-link" href={`/dashboard/posts/${post._id}/edit`}><PencilSquareIcon aria-hidden="true" /> ویرایش</Link>
-                {post.slug && post.status !== "draft" && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`} target="_blank" rel="noreferrer">مشاهده <ArrowLeftIcon aria-hidden="true" /></Link>}
+                {post.slug && post.status !== "draft" && <Link className="author-preview-link" href={`/blogs/${encodeURIComponent(post.slug)}`}>مشاهده <ArrowLeftIcon aria-hidden="true" /></Link>}
                 <button className="author-delete-link" type="button" onClick={() => { setDeleteError(""); setPostToDelete(post); }} aria-label={`حذف نوشته ${post.title || "بدون عنوان"}`}><TrashIcon aria-hidden="true" /><span>حذف</span></button>
               </div>
             </article>
@@ -85,7 +86,7 @@ function AuthorPostsContent() {
       {deleteError && <p className="author-posts-message is-error" role="alert">{deleteError}</p>}
       <div className="author-delete-confirm-actions">
         <button className="author-back-link" type="button" onClick={() => { setPostToDelete(null); setDeleteError(""); }} disabled={deleting}>انصراف</button>
-        <button className="author-delete-confirm-button" type="button" onClick={confirmDelete} disabled={deleting}><TrashIcon aria-hidden="true" />{deleting ? "در حال حذف…" : "بله، حذف شود"}</button>
+        <SubmitButtun className="author-delete-confirm-button" type="button" onClick={confirmDelete} pending={deleting}><TrashIcon aria-hidden="true" />{deleting ? "در حال حذف..." : "بله، حذف شود"}</SubmitButtun>
       </div>
     </Modal>}
     </>

@@ -52,7 +52,13 @@ export default async function BlogPostPage({ params }) {
         />
       </header>
 
-      <Coverimage title={post.title} slug={post.slug} />
+      <Coverimage
+        title={post.title}
+        slug={post.slug}
+        coverImageUrl={post.coverImageUrl}
+        readingTime={post.readingTime}
+        className="blog-post-cover"
+      />
 
       <div className="whitespace-pre-wrap text-base leading-9 text-text-primary sm:text-lg">
         {post.text}

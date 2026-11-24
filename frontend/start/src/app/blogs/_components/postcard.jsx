@@ -9,6 +9,7 @@ import Coverimage from "./coverimage";
 export default function PostCard({
   title,
   slug,
+  coverImageUrl,
   _id,
   category,
   briefText,
@@ -28,6 +29,7 @@ export default function PostCard({
       <Coverimage
         title={title}
         slug={slug}
+        coverImageUrl={coverImageUrl}
         category={category?.title}
         readingTime={readingTime}
         postId={_id}
