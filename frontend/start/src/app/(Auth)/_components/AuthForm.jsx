@@ -25,7 +25,7 @@ import RHFTextField from "@/ui/RHFtextfield";
 import Logo from "@/ui/Logo";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
-import SpinnerMini from "@/ui/SpinnerMini";
+import SubmitButtun from "@/ui/SubmitButtun";
 
 export default function AuthForm({ mode = "signin" }) {
   const isSignUp = mode === "signup";
@@ -195,11 +195,10 @@ export default function AuthForm({ mode = "signin" }) {
             }
           />
 
-          <button className="auth-submit" type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
-            {isSubmitting && <SpinnerMini />}
+          <SubmitButtun className="auth-submit" pending={isSubmitting}>
             <span>{isSubmitting ? (isSignUp ? "در حال ساخت حساب..." : "در حال ورود...") : (isSignUp ? "ساخت حساب کاربری" : "ورود به خط و کاغذ")}</span>
             {!isSubmitting && <ArrowLeftIcon aria-hidden="true" />}
-          </button>
+          </SubmitButtun>
         </form>
 
         <div className="auth-form-footer">

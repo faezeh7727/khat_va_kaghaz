@@ -8,6 +8,8 @@ import { ArrowRightIcon, CheckIcon, ClockIcon, DocumentTextIcon, PhotoIcon, TagI
 import AuthorOnly from "../_components/AuthorOnly";
 import PostEditorService from "@/services/PostEditorService";
 import useActiveTimeTracking from "@/hooks/useActiveTimeTracking";
+import SubmitButtun from "@/ui/SubmitButtun";
+import ImageCropDialog from "@/ui/ImageCropDialog";
 
 const emptyPost = { title: "", slug: "", category: "", briefText: "", text: "", type: "free", status: "published", tags: [], readingTime: "" };
 
@@ -44,11 +46,13 @@ function EditorContent({ postId }) {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
   const [image, setImage] = useState(null);
+  const [isCoverCropOpen, setIsCoverCropOpen] = useState(false);
   const [existingImage, setExistingImage] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
   const [loading, setLoading] = useState(true);
   const [postLoaded, setPostLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(null);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState("");
   const previewUrlRef = useRef(null);
@@ -118,27 +122,14 @@ function EditorContent({ postId }) {
     setTagInput("");
   }
 
-  function chooseCover(event) {
-    const selected = event.target.files?.[0] || null;
-    if (selected) {
-      const extension = selected.name.split(".").pop()?.toLowerCase();
-      if (selected.size > 2_000_000) {
-        setError("حجم تصویر کاور نباید بیشتر از ۲ مگابایت باشد.");
-        event.target.value = "";
-        return;
-      }
-      if (!["jpg", "jpeg", "png", "webp", "gif"].includes(extension)) {
-        setError("فرمت تصویر معتبر نیست. فایل JPG، PNG، WebP یا GIF انتخاب کن.");
-        event.target.value = "";
-        return;
-      }
-    }
+  function handleCoverCrop(croppedFile) {
     if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     setError("");
-    const selectedPreview = selected ? URL.createObjectURL(selected) : "";
-    previewUrlRef.current = selectedPreview || null;
+    const selectedPreview = URL.createObjectURL(croppedFile);
+    previewUrlRef.current = selectedPreview;
     setPreview(selectedPreview);
-    setImage(selected);
+    setImage(croppedFile);
+    setIsCoverCropOpen(false);
   }
 
   async function submit(event) {
@@ -170,6 +161,7 @@ function EditorContent({ postId }) {
     if (image) data.set("coverImage", image);
 
     setSaving(true);
+    setSavingStatus(nextStatus);
     try {
       await PostEditorService.save(data, postId);
       router.push("/dashboard/posts");
@@ -178,6 +170,7 @@ function EditorContent({ postId }) {
       setError(getPersianPostError(saveError.message, nextStatus));
     } finally {
       setSaving(false);
+      setSavingStatus(null);
     }
   }
 
@@ -227,11 +220,21 @@ function EditorContent({ postId }) {
         <aside className="author-editor-sidebar">
           <section className="author-editor-card author-cover-card">
             <div className="author-sidebar-heading"><PhotoIcon aria-hidden="true" /><div><h2>تصویر کاور</h2><p>نسبت ۱۶:۹ توصیه می‌شود</p></div></div>
-            <label className={`author-cover-dropzone${preview || existingImage ? " has-image" : ""}`}>
-              <input type="file" accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif" onChange={chooseCover} aria-label="انتخاب تصویر کاور" />
-              {(preview || existingImage) ? <Image className="author-cover-preview" src={preview || existingImage} alt="پیش‌نمایش کاور نوشته" width={768} height={432} unoptimized /> : <><span className="author-cover-background" aria-hidden="true" /><PhotoIcon aria-hidden="true" /><strong>تصویر شاخص را انتخاب کن</strong><span>پشتیبانی از JPG، PNG، WebP یا GIF (حداکثر ۲ مگابایت، نسبت ۱۶:۹)</span></>}
-              <span className="author-cover-change">{preview || existingImage ? "تغییر تصویر" : "انتخاب تصویر"}</span>
-            </label>
+            <div className={`author-cover-dropzone${preview || existingImage ? " has-image" : ""}`}>
+              {(preview || existingImage)
+                ? <Image className="author-cover-preview" src={preview || existingImage} alt="پیش‌نمایش کاور نوشته" width={768} height={432} unoptimized />
+                : <div className="author-cover-empty"><span className="author-cover-background" aria-hidden="true" /><PhotoIcon aria-hidden="true" /><strong>تصویر شاخص را انتخاب کن</strong><span>پشتیبانی از JPG، PNG، WebP یا GIF (حداکثر ۲ مگابایت، نسبت ۱۶:۹)</span></div>}
+              <div className="author-cover-actions">
+                <button
+                  type="button"
+                  className="author-cover-action author-cover-change"
+                  onClick={() => setIsCoverCropOpen(true)}
+                  aria-label={preview || existingImage ? "تغییر تصویر کاور" : "انتخاب تصویر کاور"}
+                >
+                  {preview || existingImage ? "تغییر تصویر" : "انتخاب تصویر"}
+                </button>
+              </div>
+            </div>
           </section>
 
           <section className="author-editor-card author-publishing-card">
@@ -269,11 +272,19 @@ function EditorContent({ postId }) {
           <div className="author-editor-estimate"><span><ClockIcon aria-hidden="true" /> زمان مطالعه‌ی برآوردی: <strong>{readingMinutes.toLocaleString("fa-IR")} دقیقه</strong></span><span className="author-editor-separator">•</span><span>{wordCount.toLocaleString("fa-IR")} واژه</span></div>
           <div className="author-form-actions">
             <Link className="author-back-link" href="/dashboard/posts">انصراف</Link>
-            <button className="author-save-draft-button" type="submit" name="status" value="draft" disabled={saving}>ذخیره‌ی پیش‌نویس</button>
-            <button className="author-action-button" type="submit" name="status" value="published" disabled={saving}>{saving ? "در حال ذخیره…" : <><CheckIcon aria-hidden="true" /> {isEdit && form.status === "published" ? "ذخیره و انتشار" : "انتشار نوشته"}</>}</button>
+            <SubmitButtun className="author-save-draft-button" name="status" value="draft" pending={saving && savingStatus === "draft"} disabled={saving && savingStatus !== "draft"}>ذخیره‌ی پیش‌نویس</SubmitButtun>
+            <SubmitButtun className="author-action-button" name="status" value="published" pending={saving && savingStatus === "published"} disabled={saving && savingStatus !== "published"}>{saving && savingStatus === "published" ? "در حال ذخیره..." : <><CheckIcon aria-hidden="true" /> {isEdit && form.status === "published" ? "ذخیره و انتشار" : "انتشار نوشته"}</>}</SubmitButtun>
           </div>
         </footer>
       </form>
+      <ImageCropDialog
+        open={isCoverCropOpen}
+        onClose={() => setIsCoverCropOpen(false)}
+        onConfirm={handleCoverCrop}
+        title="تنظیم تصویر کاور"
+        aspect={16 / 9}
+        helpText="تصویر کاور را جابه‌جا و بزرگ‌نمایی کنید تا در قاب ۱۶:۹ قرار بگیرد."
+      />
     </main>
   );
 }

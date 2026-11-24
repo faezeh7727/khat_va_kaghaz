@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { CameraIcon, PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import Authservice from "@/services/Authservice";
 import Modal from "@/ui/Modal";
+import SubmitButtun from "@/ui/SubmitButtun";
+import ImageCropDialog from "@/ui/ImageCropDialog";
 
-const MAX_AVATAR_SIZE = 2 * 1000 * 1000;
 const MAX_INTERESTS = 8;
 const PROFILE_ROLE_LABELS = { READER: "خواننده", AUTHOR: "نویسنده", ADMIN: "مدیر" };
 
 export default function ProfileEditForm({ user, onClose }) {
   const { dispatch } = useAuth();
-  const fileInputRef = useRef(null);
   const [values, setValues] = useState({
     name: user.name || "",
     username: user.username || "",
@@ -26,6 +26,7 @@ export default function ProfileEditForm({ user, onClose }) {
   const [interestInput, setInterestInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isAvatarCropOpen, setIsAvatarCropOpen] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [uploadError, setUploadError] = useState("");
@@ -75,21 +76,7 @@ export default function ProfileEditForm({ user, onClose }) {
     }));
   }
 
-  async function handleAvatarChange(event) {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    const supportedExtension = /\.(jpe?g|png|webp|gif)$/i.test(file.name);
-    const supportedMimeType = ["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type);
-    if (!supportedExtension || (file.type && !supportedMimeType)) {
-      setUploadError("لطفاً یک فایل تصویری انتخاب کنید.");
-      return;
-    }
-    if (file.size > MAX_AVATAR_SIZE) {
-      setUploadError("حجم تصویر باید کمتر از ۲ مگابایت باشد.");
-      return;
-    }
-
+  async function handleAvatarCrop(file) {
     const previewUrl = URL.createObjectURL(file);
     setAvatarUrl(previewUrl);
     setIsUploading(true);
@@ -99,10 +86,14 @@ export default function ProfileEditForm({ user, onClose }) {
       if (!result.user) throw new Error("اطلاعات تصویر دریافت نشد. دوباره تلاش کنید.");
       dispatch({ type: "AUTH_PROFILE_UPDATED", payload: result.user });
       setAvatarUrl(result.user.avatarUrl || previewUrl);
+      setUploadError("");
+      setIsAvatarCropOpen(false);
       toast.success(result.message || "تصویر پروفایل به‌روز شد.");
     } catch (uploadFailure) {
       setAvatarUrl(user.avatarUrl || "");
-      setUploadError(uploadFailure.message || "بارگذاری تصویر انجام نشد.");
+      const message = uploadFailure.message || "بارگذاری تصویر انجام نشد.";
+      setUploadError(message);
+      throw new Error(message);
     } finally {
       setIsUploading(false);
     }
@@ -167,7 +158,7 @@ export default function ProfileEditForm({ user, onClose }) {
       eyebrow={<><PencilSquareIcon aria-hidden="true" />ویرایش اطلاعات کاربری</>}
       title="ویرایش اطلاعات کاربری"
       onClose={onClose}
-      closeDisabled={isSaving || isUploading}
+      closeDisabled={isSaving || isUploading || isAvatarCropOpen}
       className="profile-edit-dialog"
     >
       <form className="profile-edit-form" onSubmit={handleSubmit} noValidate>
@@ -180,7 +171,7 @@ export default function ProfileEditForm({ user, onClose }) {
               className="profile-avatar-camera"
               type="button"
               aria-label="انتخاب تصویر پروفایل"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => { setUploadError(""); setIsAvatarCropOpen(true); }}
               disabled={isUploading}
             ><CameraIcon aria-hidden="true" /></button>
           </div>
@@ -188,7 +179,7 @@ export default function ProfileEditForm({ user, onClose }) {
             <strong>{values.name || "کاربر"}</strong>
             <span>نقش: {PROFILE_ROLE_LABELS[user.role] || "کاربر"} · تصویر تا ۲ مگابایت</span>
             <div className="profile-avatar-upload-actions">
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+              <button type="button" onClick={() => { setUploadError(""); setIsAvatarCropOpen(true); }} disabled={isUploading}>
                 {isUploading ? "در حال بارگذاری تصویر…" : "بارگذاری تصویر جدید"}
               </button>
               <span aria-hidden="true">·</span>
@@ -196,15 +187,6 @@ export default function ProfileEditForm({ user, onClose }) {
                 {isUploading ? "در حال حذف…" : "حذف"}
               </button>
             </div>
-            <input
-              ref={fileInputRef}
-              className="profile-avatar-file-input"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
-              onChange={handleAvatarChange}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
           </div>
         </section>
         {uploadError && <p className="profile-edit-error" role="alert">{uploadError}</p>}
@@ -289,11 +271,20 @@ export default function ProfileEditForm({ user, onClose }) {
 
         <footer className="profile-edit-actions">
           <button className="profile-edit-cancel" type="button" onClick={onClose} disabled={isSaving || isUploading}>انصراف</button>
-          <button className="profile-edit-save" type="submit" disabled={isSaving || isUploading}>
+          <SubmitButtun className="profile-edit-save" pending={isSaving} disabled={isUploading}>
             {isUploading ? "در حال بارگذاری تصویر…" : isSaving ? "در حال ذخیره…" : "ذخیرهٔ تغییرات"}
-          </button>
+          </SubmitButtun>
         </footer>
       </form>
+      <ImageCropDialog
+        open={isAvatarCropOpen}
+        onClose={() => setIsAvatarCropOpen(false)}
+        onConfirm={handleAvatarCrop}
+        title="تغییر آواتار"
+        aspect={1}
+        busy={isUploading}
+        helpText="تصویری روشن و واضح از چهره انتخاب کنید؛ برش نهایی مربعی است."
+      />
     </Modal>
   );
 }
