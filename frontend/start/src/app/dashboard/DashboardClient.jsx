@@ -6,7 +6,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
-  Bars3Icon,
   BookOpenIcon,
   PencilIcon,
 } from "@heroicons/react/24/outline";
@@ -88,7 +87,6 @@ export default function DashboardClient() {
             <BookOpenIcon aria-hidden="true" />
             <span>نوشته‌های من</span>
             {stats?.posts != null && <span className="dashboard-author-count">{new Intl.NumberFormat("fa-IR").format(stats.posts)}</span>}
-            <Bars3Icon className="dashboard-author-menu-icon" aria-hidden="true" />
           </Link>
           <Link className="dashboard-author-link dashboard-author-link-new" href="/dashboard/posts/new">
             <span>نوشتن مطلب تازه</span>

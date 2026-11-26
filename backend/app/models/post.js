@@ -18,6 +18,8 @@ const PostSchema = new mongoose.Schema(
       enum: ["free", "premium"],
     },
     briefText: { type: String, required() { return this.status === "published"; } },
+    keyPoint: { type: String, required() { return this.status === "published"; }, trim: true, maxlength: 60 },
+    quote: { type: String, trim: true, maxlength: 1000, default: "" },
     text: { type: String, required() { return this.status === "published"; } },
     coverImage: {
       light: { type: String, required() { return this.status === "published"; } },

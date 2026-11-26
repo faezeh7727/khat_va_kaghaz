@@ -11,7 +11,7 @@ import useActiveTimeTracking from "@/hooks/useActiveTimeTracking";
 import SubmitButtun from "@/ui/SubmitButtun";
 import ImageCropDialog from "@/ui/ImageCropDialog";
 
-const emptyPost = { title: "", slug: "", category: "", briefText: "", text: "", type: "free", status: "published", tags: [], readingTime: "" };
+const emptyPost = { title: "", slug: "", category: "", briefText: "", keyPoint: "", quote: "", text: "", type: "free", status: "published", tags: [], readingTime: "" };
 
 function makeSlug(value) {
   return value.trim().toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
@@ -24,6 +24,7 @@ function getPersianPostError(message, status = "published") {
   if (/limit_file_size|file too large|file size|larger than/.test(value)) return "حجم تصویر کاور نباید بیشتر از ۲ مگابایت باشد.";
   if (/filetype|file type|file format|فرمت/.test(value)) return "فرمت تصویر معتبر نیست. فایل JPG، PNG، WebP یا GIF انتخاب کن.";
   if (/readingtime|reading time/.test(value)) return "زمان مطالعه باید یک عدد معتبر و دست‌کم ۱ دقیقه باشد.";
+  if (/keypoint|key point/.test(value)) return "نکتهٔ کلیدی را در حداکثر چهار کلمه بنویس.";
   if (/category/.test(value)) return "برای انتشار، یک دسته‌بندی معتبر انتخاب کن.";
   if (/title/.test(value)) return "عنوان باید بین ۵ تا ۱۰۰ نویسه باشد.";
   if (/slug/.test(value)) return "نشانی نوشته را وارد کن.";
@@ -73,6 +74,8 @@ function EditorContent({ postId }) {
           slug: post.status === "draft" && /^draft-[a-f0-9]{24}$/i.test(post.slug || "") ? "" : post.slug || "",
           category: post.category?._id || post.category || "",
           briefText: post.briefText || "",
+          keyPoint: post.keyPoint || "",
+          quote: post.quote || "",
           text: post.text || "",
           type: post.type || "free",
           status: post.status || "published",
@@ -145,6 +148,7 @@ function EditorContent({ postId }) {
       if (!form.slug.trim()) return setError("نشانی نوشته را وارد کن.");
       if (!form.category) return setError("برای انتشار، یک دسته‌بندی انتخاب کن.");
       if (!form.briefText.trim() || !form.text.trim()) return setError("خلاصه و متن نوشته را کامل کن.");
+      if (!form.keyPoint.trim() || form.keyPoint.trim().split(/\s+/).length > 4) return setError("نکتهٔ کلیدی را در حداکثر چهار کلمه بنویس.");
       if (!image && !existingImage) return setError("برای انتشار نوشته تصویر کاور انتخاب کن.");
     }
 
@@ -153,6 +157,8 @@ function EditorContent({ postId }) {
     data.set("slug", form.slug.trim());
     if (form.category) data.set("category", form.category);
     data.set("briefText", form.briefText.trim());
+    data.set("keyPoint", form.keyPoint.trim());
+    data.set("quote", form.quote.trim());
     data.set("text", form.text);
     data.set("type", form.type);
     data.set("readingTime", String(readingMinutes));
@@ -207,12 +213,14 @@ function EditorContent({ postId }) {
               <label className="author-title-field"><span>عنوان نوشته <b aria-hidden="true">*</b></span><input name="title" value={form.title} onChange={updateField} maxLength={100} placeholder="عنوان جذاب و متناسب برای نوشته…" /></label>
               <label className="author-slug-field"><span>نشانی نوشته <span className="author-field-hint">(Slug)</span></span><div className="author-slug-input" dir="ltr"><span>/blogs/</span><input name="slug" value={form.slug} onChange={(event) => { setSlugEdited(true); updateField(event); }} dir="auto" placeholder="my-creative-story" /></div></label>
               <label className="author-summary-field"><span>خلاصه <span className="author-field-hint">نمایش در کارت‌ها و نتایج جستجو</span></span><textarea name="briefText" value={form.briefText} onChange={updateField} rows={3} placeholder="چکیده‌ای کوتاه و گیرا از این مطلب بنویس…" /></label>
+              <label className="author-keypoint-field"><span>نکتهٔ کلیدی <span className="author-field-hint">حداکثر چهار کلمه، روی تصویر کاور</span></span><input name="keyPoint" value={form.keyPoint} onChange={updateField} maxLength={60} placeholder="مثلاً: نسخهٔ اصلی و زبان اصلی" /><span className="author-field-hint">{form.keyPoint.trim() ? form.keyPoint.trim().split(/\s+/).length : 0} از ۴ کلمه</span></label>
             </div>
           </section>
 
           <section className="author-editor-card author-editor-canvas" aria-label="متن نوشته">
             <div className="author-editor-card-heading author-canvas-heading"><DocumentTextIcon aria-hidden="true" /><div><h2>متن اصلی نوشته</h2><p>با صدای خودت بنویس؛ هر وقت آماده بودی می‌توانی پیش‌نویس را ذخیره کنی.</p></div><span className="author-word-count">{wordCount.toLocaleString("fa-IR")} واژه</span></div>
             <textarea className="author-writing-canvas" name="text" value={form.text} onChange={updateField} rows={18} placeholder="نوشتن را از این‌جا آغاز کن…" />
+            <label className="author-quote-field"><span>نقل‌قول برجسته <span className="author-field-hint">اختیاری، نمایش در میان متن</span></span><textarea name="quote" value={form.quote} onChange={updateField} rows={3} placeholder="نقل‌قولی که می‌خواهی در میان متن برجسته شود بنویس…" /></label>
             <div className="author-canvas-footer"><span>نگارش فارسی</span><span><ClockIcon aria-hidden="true" /> زمان مطالعه: {readingMinutes.toLocaleString("fa-IR")} دقیقه</span></div>
           </section>
         </div>

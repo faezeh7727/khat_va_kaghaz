@@ -17,6 +17,13 @@ async function validateAddNewPost(data) {
       : Joi.string().pattern(MongoIDPattern).required(),
     text: isDraft ? Joi.string().allow("").optional() : Joi.string().required(),
     briefText: isDraft ? Joi.string().allow("").optional() : Joi.string().required(),
+    keyPoint: isDraft
+      ? Joi.string().trim().max(60).allow("").optional()
+      : Joi.string().trim().min(1).max(60).custom((value, helpers) => {
+          if (value.split(/\s+/).length > 4) return helpers.error("any.custom");
+          return value;
+        }).messages({ "any.custom": "نکتهٔ کلیدی باید حداکثر چهار کلمه باشد." }).required(),
+    quote: Joi.string().trim().max(1000).allow("").optional(),
     coverImage: Joi.object({
       light: Joi.string().required(),
       dark: Joi.string().required(),

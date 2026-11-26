@@ -3,7 +3,7 @@
 "use client";
 
 import Image from "next/image";
-import { ClockIcon } from "@heroicons/react/24/outline";
+import { BookOpenIcon, ClockIcon } from "@heroicons/react/24/outline";
 import { useTheme } from "@/context/ThemeContext";
 import { BookmarkAction } from "./postinteraction";
 
@@ -13,6 +13,7 @@ export default function Coverimage({
   coverImageUrl,
   category,
   readingTime,
+  coverInsight,
   postId,
   isBookmarked,
   showBookmark = false,
@@ -47,10 +48,15 @@ export default function Coverimage({
           <BookmarkAction postId={postId} isBookmarked={isBookmarked} />
         )}
       </div>
-      {readingTime ?
+      {coverInsight ?
+        <span className="post-card-cover-reading-time post-card-cover-insight" title={coverInsight}>
+          <BookOpenIcon aria-hidden="true" />
+          <span>{coverInsight}</span>
+        </span>
+      : readingTime ?
         <span className="post-card-cover-reading-time">
           <ClockIcon aria-hidden="true" />
-          {Number(readingTime).toLocaleString("fa-IR")} دقیقه مطالعه
+          <span>{Number(readingTime).toLocaleString("fa-IR")} دقیقه مطالعه</span>
         </span>
       : null}
     </div>

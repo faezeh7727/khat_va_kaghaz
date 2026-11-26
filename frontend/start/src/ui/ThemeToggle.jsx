@@ -19,7 +19,7 @@ export default function ThemeToggle() {
       variant="outline"
       className="theme-toggle h-10 w-10 text-accent-600 transition disabled:cursor-wait disabled:opacity-70 lg:h-10 lg:w-auto lg:gap-2 lg:px-3"
     >
-      {showDarkMode ? <MoonIcon aria-hidden="true" /> : <SunIcon aria-hidden="true" />}
+      {showDarkMode ? <SunIcon aria-hidden="true" /> : <MoonIcon aria-hidden="true" />}
     </ButtonIcon>
   );
 }

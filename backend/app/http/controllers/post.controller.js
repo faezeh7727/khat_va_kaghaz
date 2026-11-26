@@ -305,6 +305,8 @@ class PostController extends Controller {
     const {
       title,
       briefText,
+      keyPoint,
+      quote = "",
       type = "free",
       category,
       tags = [],
@@ -320,6 +322,8 @@ class PostController extends Controller {
     const post = await PostModel.create({
       title,
       briefText,
+      keyPoint,
+      quote,
       slug,
       status,
       type,
@@ -384,6 +388,8 @@ class PostController extends Controller {
       slug: data.slug ?? post.slug,
       category: String(data.category ?? post.category?._id ?? post.category ?? ""),
       briefText: data.briefText ?? post.briefText,
+      keyPoint: data.keyPoint ?? post.keyPoint,
+      quote: data.quote ?? post.quote ?? "",
       text: data.text ?? post.text,
       coverImage,
       readingTime: data.readingTime ?? post.readingTime,
